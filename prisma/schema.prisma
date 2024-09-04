@@ -1,0 +1,123 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+   previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Users {
+  id        Int      @id @default(autoincrement())
+  name      String
+  email     String   @unique
+  phone     String?   @unique
+  password  String
+  status    String   @default("inactive")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  tokens    Temporal_token_pool[]
+  churches   Churches[]
+  roles     Roles[]
+}
+model Roles {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     Users[]
+}
+model Session {
+  id        String   @id 
+  sid       String   @unique
+  data      String   @db.VarChar(255)
+  expiresAt   DateTime
+}
+
+model Temporal_token_pool {
+  id             Int      @id @default(autoincrement())
+  token          String   @unique
+  userEmail      String
+  user           Users    @relation(fields: [userEmail], references: [email])
+  type           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model Churches {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  country   String
+  address   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     Users[]
+  services  Services[]
+  songs     Songs[]
+}
+model Services {
+  id        Int      @id @default(autoincrement())
+  title     String   @unique
+  Date      DateTime
+  time      DateTime
+  churchId  Int
+  church    Churches @relation(fields: [churchId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Songs {
+  id        Int      @id @default(autoincrement())
+  title     String   @unique
+  author    String
+  churchId  Int
+  church    Churches @relation(fields: [churchId], references: [id])
+  type      String  @default("Worship")
+  youtube_link String
+  key       String
+  tempo     String
+  lyrics    Songs_lyrics[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Songs_Structure {
+  id        Int      @id @default(autoincrement())
+  title     String   @unique
+  lyrics    Songs_lyrics[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Songs_lyrics {
+  id        Int      @id @default(autoincrement())
+  songId    Int
+  song      Songs @relation(fields: [songId], references: [id])
+  structureId Int
+  structure Songs_Structure @relation(fields: [structureId], references: [id])
+  lyrics    String
+  chords    Songs_Chords[]
+  position  Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Songs_Chords {
+  id        Int      @id @default(autoincrement())
+  lyricId   Int
+  lyric     Songs_lyrics @relation(fields: [lyricId], references: [id])
+  root_note      String
+  chord_quality String @default("")
+  slash_chord String @default("")
+  slash_quality String @default("")
+  position  Int     @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
