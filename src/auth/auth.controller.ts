@@ -80,11 +80,7 @@ export class AuthController {
 
   @ApiVerify()
   @Get('/verify-email/:token')
-  async verifyEmail(
-    @Res() res: Response,
-    @Session() session: SessionData,
-    @Param('token') token: string,
-  ) {
+  async verifyEmail(@Res() res: Response, @Param('token') token: string) {
     try {
       const verifyData = await this.authService.verifyEmail(token);
       if (verifyData.status !== 'active')
