@@ -17,10 +17,26 @@ export class UsersService {
             id: true,
           },
         },
-        churches: {
+        memberships: {
           select: {
             id: true,
-            name: true,
+            church: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            roles: {
+              select: {
+                id: true,
+                role: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            memberSince: true,
           },
         },
       },

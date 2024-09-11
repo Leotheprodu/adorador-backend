@@ -13,8 +13,34 @@ export class AuthService {
         email: body.email,
       },
       include: {
-        churches: true,
-        roles: true,
+        memberships: {
+          where: { active: true },
+          select: {
+            id: true,
+            church: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            roles: {
+              select: {
+                id: true,
+                role: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            memberSince: true,
+          },
+        },
+        roles: {
+          select: {
+            id: true,
+          },
+        },
       },
       omit: { createdAt: true, updatedAt: true },
     });

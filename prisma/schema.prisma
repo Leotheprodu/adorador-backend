@@ -15,16 +15,17 @@ datasource db {
 }
 
 model Users {
-  id        Int      @id @default(autoincrement())
+  id        Int          @id @default(autoincrement())
   name      String
-  email     String   @unique
-  phone     String?   @unique
+  email     String       @unique
+  phone     String?      @unique
   password  String
-  status    String   @default("inactive")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  birthdate DateTime?
+  status    String       @default("inactive")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
   tokens    Temporal_token_pool[]
-  churches   Churches[]
+  memberships Memberships[]
   roles     Roles[]
 }
 model Roles {
@@ -52,15 +53,47 @@ model Temporal_token_pool {
 }
 
 model Churches {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
+  id        Int          @id @default(autoincrement())
+  name      String       @unique
   country   String
   address   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  users     Users[]
+  aniversary DateTime?
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+  memberships Memberships[]
   services  Services[]
   songs     Songs[]
+}
+model Memberships {
+  id        Int        @id @default(autoincrement())
+  user      Users      @relation(fields: [userId], references: [id])
+  userId    Int
+  church    Churches   @relation(fields: [churchId], references: [id])
+  churchId  Int
+  active    Boolean    @default(false) // Controla si el usuario es aceptado como miembro
+  memberSince DateTime  @default(now())
+  roles     ChurchMemberRoles[] // Relación con los roles dentro de la iglesia
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  @@unique([userId, churchId]) // Asegura que un usuario solo puede tener una membresía por iglesia
+}
+model ChurchMemberRoles {
+  id          Int          @id @default(autoincrement())
+  membership  Memberships   @relation(fields: [membershipId], references: [id])
+  membershipId Int
+  role        ChurchRoles         @relation(fields: [roleId], references: [id])  // Relación con la tabla de roles de las iglesias
+  roleId      Int
+  startDate   DateTime     @default(now())
+  endDate     DateTime?
+
+  @@index([membershipId])
+  @@index([roleId])
+}
+model ChurchRoles {
+  id          Int          @id @default(autoincrement())
+  name        String       @unique // Nombre del rol (pastor, líder de alabanza, etc.)
+  description String?      // Descripción del rol si es necesario
+  churchRoles ChurchMemberRoles[]
 }
 model Services {
   id        Int      @id @default(autoincrement())

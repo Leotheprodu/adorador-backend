@@ -42,22 +42,30 @@ export class AuthController {
   ) {
     try {
       const user = await this.authService.login(body);
-      const { password, roles, churches, ...userData } = user;
+      const { password, roles, memberships, ...userData } = user;
       const userRoles = roles.map((role) => role.id);
-      const userChurches = churches.map((church) => {
-        return { id: church.id, name: church.name };
+
+      const userMemberships = memberships.map((membership) => {
+        return {
+          id: membership.id,
+          church: { id: membership.church.id, name: membership.church.name },
+          roles: membership.roles.map((role) => {
+            return { id: role.id, name: role.role.name };
+          }),
+          since: membership.memberSince,
+        };
       });
       if (!user)
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       session.userId = user.id;
       session.isLoggedIn = true;
       session.roles = userRoles;
-      session.church = userChurches;
+      session.memberships = userMemberships;
       res.status(HttpStatus.ACCEPTED).send({
         ...userData,
         roles: userRoles,
         isLoggedIn: true,
-        church: userChurches,
+        memberships: userMemberships,
       });
     } catch (e) {
       catchHandle(e);
@@ -69,10 +77,8 @@ export class AuthController {
   @UseGuards(IsNotLoggedInGuard)
   async logout(@Res() res: Response, @Session() session: SessionData) {
     try {
-      const user = await this.usersService.getUser(session.userId);
       session.isLoggedIn = false;
-      const { password, ...userData } = user;
-      res.status(HttpStatus.OK).send({ ...userData, isLoggedIn: false });
+      res.status(HttpStatus.OK).send({ id: session.userId, isLoggedIn: false });
     } catch (e) {
       catchHandle(e);
     }

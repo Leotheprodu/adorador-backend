@@ -38,7 +38,12 @@ export class UsersController {
       const usersData = await this.usersService.getUsers();
       if (!usersData)
         throw new HttpException('Users not found', HttpStatus.NOT_FOUND);
-      res.send(usersData);
+
+      const users = usersData.map((user) => {
+        return { ...user, roles: user.roles.map((role) => role.id) };
+      });
+
+      res.send(users);
     } catch (e) {
       catchHandle(e);
     }

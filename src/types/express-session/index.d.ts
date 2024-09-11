@@ -5,6 +5,12 @@ declare module 'express-session' {
     userId: number;
     isLoggedIn: boolean;
     roles: number[];
-    church: { id: number; name: string }[];
+
+    memberships: {
+      id: number;
+      church: { id: number; name: string };
+      roles: { id: number; name: string }[];
+      since: Date;
+    }[];
   }
 }
