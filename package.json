@@ -1,8 +1,8 @@
 {
-  "name": "ghost-cloud-backend",
+  "name": "adorador-backend",
   "version": "0.0.1",
   "description": "",
-  "author": "",
+  "author": "Leonardo Serrano",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
