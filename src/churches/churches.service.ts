@@ -8,4 +8,11 @@ export class ChurchesService {
   async getChurches() {
     return await this.prisma.churches.findMany();
   }
+
+  async createChurch(data: any) {
+    const churche = await this.prisma.churches.create({ data });
+    if (churche) {
+      return churche;
+    }
+  }
 }
