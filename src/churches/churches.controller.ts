@@ -1,9 +1,13 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpException,
   HttpStatus,
+  Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Res,
   UseGuards,
@@ -46,6 +50,54 @@ export class ChurchesController {
         throw new HttpException('Users not found', HttpStatus.NOT_FOUND);
 
       res.send(churchData);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Get(':id')
+  @UseGuards(IsNotLoggedInGuard)
+  async getChurch(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+    try {
+      const churchData = await this.churchesService.getChurch(id);
+      if (!churchData)
+        throw new HttpException('Church not found', HttpStatus.NOT_FOUND);
+
+      res.send(churchData);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Patch(':id')
+  @UseGuards(IsNotLoggedInGuard)
+  @UseGuards(UserStatusGuard)
+  async updateChurch(
+    @Res() res: Response,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: CreateChurchDto,
+  ) {
+    try {
+      const churchData = await this.churchesService.updateChurch(id, body);
+      if (!churchData)
+        throw new HttpException('Church not found', HttpStatus.NOT_FOUND);
+
+      res.send(churchData);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Delete(':id')
+  @UseGuards(IsNotLoggedInGuard)
+  @UseGuards(UserStatusGuard)
+  async deleteChurch(
+    @Res() res: Response,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    try {
+      await this.churchesService.deleteChurch(id);
+      res.send({ message: `Church id ${id} deleted` });
     } catch (e) {
       catchHandle(e);
     }
