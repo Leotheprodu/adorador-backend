@@ -18,6 +18,7 @@ export class UsersService {
           },
         },
         memberships: {
+          where: { active: true },
           select: {
             id: true,
             church: {
