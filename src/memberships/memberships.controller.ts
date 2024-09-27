@@ -21,6 +21,8 @@ import { catchHandle } from 'src/chore/utils/catchHandle';
 import { Response } from 'express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiCreateMembership } from './memberships.swagger';
+import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { CheckUserId } from 'src/auth/decorators/permissions.decorators';
 
 @Controller('users/:userId/memberships')
 @ApiTags('memberships')
@@ -63,8 +65,11 @@ export class MembershipsController {
       catchHandle(e);
     }
   }
+
   @ApiOperation({ summary: 'Get membership by id' })
   @Get(':id')
+  @UseGuards(PermissionsGuard)
+  @CheckUserId('userId')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) userId: number,

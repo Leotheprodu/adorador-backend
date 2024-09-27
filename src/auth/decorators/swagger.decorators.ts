@@ -1,6 +1,6 @@
-import { ApiBody, ApiOperation, ApiTags, ApiOkResponse } from '@nestjs/swagger';
+import { ApiBody, ApiOperation, ApiOkResponse } from '@nestjs/swagger';
 import { applyDecorators } from '@nestjs/common';
-import { LoginDto } from './dto/login.dto';
+import { LoginDto } from '../dto/login.dto';
 
 export function ApiLogin() {
   return applyDecorators(

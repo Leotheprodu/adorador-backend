@@ -37,4 +37,10 @@ export class MembershipsService {
       where: { id },
     });
   }
+
+  async getMemberships(userId: number, churchId: number) {
+    return await this.prisma.memberships.findFirst({
+      where: { userId, churchId },
+    });
+  }
 }

@@ -12,7 +12,7 @@ export class UserStatusGuard implements CanActivate {
     const { id } = context.switchToHttp().getRequest().params;
     if (
       session.userId !== parseInt(id) &&
-      session.roles.includes(userRoles.Admin.id) === false
+      session.roles.includes(userRoles.admin.id) === false
     ) {
       return false;
     }

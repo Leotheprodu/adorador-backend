@@ -38,7 +38,7 @@ model Roles {
 model Session {
   id        String   @id 
   sid       String   @unique
-  data      String   @db.VarChar(255)
+  data      String   @db.MediumText
   expiresAt   DateTime
 }
 
@@ -77,6 +77,7 @@ model Memberships {
   updatedAt DateTime   @updatedAt
   @@unique([userId, churchId]) // Asegura que un usuario solo puede tener una membresía por iglesia
 }
+
 model ChurchMemberRoles {
   id          Int          @id @default(autoincrement())
   membership  Memberships   @relation(fields: [membershipId], references: [id])
@@ -85,6 +86,7 @@ model ChurchMemberRoles {
   roleId      Int
   startDate   DateTime     @default(now())
   endDate     DateTime?
+  active      Boolean      @default(true) // Controla si el rol está activo o no
 
   @@index([membershipId])
   @@index([roleId])
