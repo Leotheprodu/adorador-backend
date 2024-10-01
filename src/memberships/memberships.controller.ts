@@ -22,10 +22,17 @@ import { Response } from 'express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiCreateMembership } from './memberships.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
-import { CheckUserId } from 'src/auth/decorators/permissions.decorators';
+import {
+  AppRole,
+  CheckChurch,
+  CheckLoginStatus,
+  CheckUserId,
+  ChurchRole,
+} from 'src/auth/decorators/permissions.decorators';
 
 @Controller('users/:userId/memberships')
 @ApiTags('memberships')
+@UseGuards(PermissionsGuard)
 export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
@@ -68,8 +75,10 @@ export class MembershipsController {
 
   @ApiOperation({ summary: 'Get membership by id' })
   @Get(':id')
-  @UseGuards(PermissionsGuard)
-  @CheckUserId('userId')
+  @CheckLoginStatus('loggedIn')
+  /*  @CheckUserId('userId') */
+  @AppRole(2)
+  @CheckChurch('paramUserId', 'userId')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) userId: number,

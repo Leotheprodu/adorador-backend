@@ -58,7 +58,32 @@ export class UsersService {
   async getUser(id: number) {
     return await this.prisma.users.findUnique({
       where: { id },
-      include: { roles: true },
+      include: {
+        memberships: {
+          where: { active: true },
+          select: {
+            id: true,
+            church: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+            roles: {
+              select: {
+                id: true,
+                role: {
+                  select: {
+                    name: true,
+                  },
+                },
+              },
+            },
+            memberSince: true,
+          },
+        },
+        roles: true,
+      },
     });
   }
 
