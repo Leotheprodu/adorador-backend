@@ -6,9 +6,11 @@ import { ChurchesModule } from './churches/churches.module';
 import { ServicesModule } from './services/services.module';
 import { SongsModule } from './songs/songs.module';
 import { MembershipsModule } from './memberships/memberships.module';
+import { ChurchRolesModule } from './church-roles/church-roles.module';
+import { ChurchMemberRolesModule } from './church-member-roles/church-member-roles.module';
 
 @Module({
-  imports: [UsersModule, AuthModule, EmailModule, ChurchesModule, ServicesModule, SongsModule, MembershipsModule],
+  imports: [UsersModule, AuthModule, EmailModule, ChurchesModule, ServicesModule, SongsModule, MembershipsModule, ChurchRolesModule, ChurchMemberRolesModule],
   controllers: [],
   providers: [],
 })
