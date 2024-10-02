@@ -16,22 +16,31 @@ export class ChurchMemberRolesService {
     });
   }
 
-  async findAll() {
-    return `This action returns all churchMemberRoles`;
+  async findAll(membershipId: number) {
+    return await this.prisma.churchMemberRoles.findMany({
+      where: { membershipId },
+    });
   }
 
   async findOne(id: number) {
-    return `This action returns a #${id} churchMemberRole`;
+    return await this.prisma.churchMemberRoles.findUnique({
+      where: { id },
+    });
   }
 
   async update(
     id: number,
     updateChurchMemberRoleDto: UpdateChurchMemberRoleDto,
   ) {
-    return `This action updates a #${id} churchMemberRole`;
+    return await this.prisma.churchMemberRoles.update({
+      where: { id },
+      data: updateChurchMemberRoleDto,
+    });
   }
 
   async remove(id: number) {
-    return `This action removes a #${id} churchMemberRole`;
+    return await this.prisma.churchMemberRoles.delete({
+      where: { id },
+    });
   }
 }

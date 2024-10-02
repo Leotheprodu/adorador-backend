@@ -20,6 +20,7 @@ import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard'
 import {
   CheckChurch,
   CheckLoginStatus,
+  CheckUserId,
 } from 'src/auth/decorators/permissions.decorators';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { Response } from 'express';
@@ -56,25 +57,81 @@ export class ChurchMemberRolesController {
   }
 
   @Get()
-  async findAll() {
-    return this.churchMemberRolesService.findAll();
+  @ApiOperation({ summary: 'Get all roles in membership of user' })
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch('paramUserId', 'userId')
+  @CheckUserId('userId')
+  async findAll(
+    @Param('membershipId', ParseIntPipe) membershipId: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const churchMemberRoles =
+        await this.churchMemberRolesService.findAll(membershipId);
+      if (!churchMemberRoles) {
+        throw new HttpException('Roles Not Found', HttpStatus.NOT_FOUND);
+      }
+      res.status(HttpStatus.OK).send(churchMemberRoles);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
-    return this.churchMemberRolesService.findOne(+id);
+  @ApiOperation({ summary: 'Get role in membership of user by id' })
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch('paramUserId', 'userId')
+  @CheckUserId('userId')
+  async findOne(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    try {
+      const churchMemberRole = await this.churchMemberRolesService.findOne(id);
+      if (!churchMemberRole) {
+        throw new HttpException('Role Not Found', HttpStatus.NOT_FOUND);
+      }
+      res.status(HttpStatus.OK).send(churchMemberRole);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 
   @Patch(':id')
+  @ApiOperation({ summary: 'Update role in membership of user by id' })
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch('paramUserId', 'userId')
+  @CheckUserId('userId')
   async update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateChurchMemberRoleDto: UpdateChurchMemberRoleDto,
+    @Res() res: Response,
   ) {
-    return this.churchMemberRolesService.update(+id, updateChurchMemberRoleDto);
+    try {
+      const churchMemberRole = await this.churchMemberRolesService.update(
+        id,
+        updateChurchMemberRoleDto,
+      );
+      if (!churchMemberRole) {
+        throw new HttpException('Role Not Updated', HttpStatus.CONFLICT);
+      }
+      res.status(HttpStatus.OK).send(churchMemberRole);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    return this.churchMemberRolesService.remove(+id);
+  @ApiOperation({ summary: 'Delete role in membership of user by id' })
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch('paramUserId', 'userId')
+  @CheckUserId('userId')
+  async remove(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
+    try {
+      const churchMemberRole = await this.churchMemberRolesService.remove(id);
+      if (!churchMemberRole) {
+        throw new HttpException('Role Not Deleted', HttpStatus.CONFLICT);
+      }
+      res.status(HttpStatus.OK).send(churchMemberRole);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 }
