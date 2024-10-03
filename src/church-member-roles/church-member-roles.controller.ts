@@ -36,7 +36,7 @@ export class ChurchMemberRolesController {
   @Post()
   @ApiOperation({ summary: 'Create role in membership of user' })
   @CheckLoginStatus('loggedIn')
-  @CheckChurch('paramUserId', 'userId')
+  @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   async create(
     @Body() createChurchMemberRoleDto: CreateChurchMemberRoleDto,
     @Param('membershipId', ParseIntPipe) membershipId: number,
@@ -59,7 +59,7 @@ export class ChurchMemberRolesController {
   @Get()
   @ApiOperation({ summary: 'Get all roles in membership of user' })
   @CheckLoginStatus('loggedIn')
-  @CheckChurch('paramUserId', 'userId')
+  @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')
   async findAll(
     @Param('membershipId', ParseIntPipe) membershipId: number,
@@ -80,7 +80,7 @@ export class ChurchMemberRolesController {
   @Get(':id')
   @ApiOperation({ summary: 'Get role in membership of user by id' })
   @CheckLoginStatus('loggedIn')
-  @CheckChurch('paramUserId', 'userId')
+  @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')
   async findOne(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     try {
@@ -97,7 +97,7 @@ export class ChurchMemberRolesController {
   @Patch(':id')
   @ApiOperation({ summary: 'Update role in membership of user by id' })
   @CheckLoginStatus('loggedIn')
-  @CheckChurch('paramUserId', 'userId')
+  @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -121,7 +121,7 @@ export class ChurchMemberRolesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete role in membership of user by id' })
   @CheckLoginStatus('loggedIn')
-  @CheckChurch('paramUserId', 'userId')
+  @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')
   async remove(@Param('id', ParseIntPipe) id: number, @Res() res: Response) {
     try {

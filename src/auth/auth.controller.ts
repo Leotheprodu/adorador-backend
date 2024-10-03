@@ -54,7 +54,11 @@ export class AuthController {
           id: membership.id,
           church: { id: membership.church.id, name: membership.church.name },
           roles: membership.roles.map((role) => {
-            return { id: role.id, name: role.role.name };
+            return {
+              id: role.id,
+              name: role.role.name,
+              churchRoleId: role.role.id,
+            };
           }),
           since: membership.memberSince,
         };

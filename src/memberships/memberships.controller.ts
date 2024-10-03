@@ -15,8 +15,6 @@ import {
 import { MembershipsService } from './memberships.service';
 import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
-import { IsNotLoggedInGuard } from 'src/auth/guards/is-not-logged-in/is-not-logged-in.guard';
-import { UserStatusGuard } from 'src/users/guards/user-status/user-status.guard';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { Response } from 'express';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -27,8 +25,8 @@ import {
   CheckChurch,
   CheckLoginStatus,
   CheckUserId,
-  ChurchRole,
 } from 'src/auth/decorators/permissions.decorators';
+import { churchRoles } from 'config/constants';
 
 @Controller('users/:userId/memberships')
 @ApiTags('memberships')
@@ -38,8 +36,13 @@ export class MembershipsController {
 
   @ApiOperation({ summary: 'Create membership' })
   @Post()
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @CheckUserId('userId')
+  @CheckChurch({
+    checkBy: 'bodyChurchId',
+    key: 'churchId',
+    churchRolesBypass: [churchRoles.pastor.id],
+  })
   @ApiCreateMembership()
   async create(
     @Res() res: Response,
@@ -76,9 +79,12 @@ export class MembershipsController {
   @ApiOperation({ summary: 'Get membership by id' })
   @Get(':id')
   @CheckLoginStatus('loggedIn')
-  /*  @CheckUserId('userId') */
-  @AppRole(2)
-  @CheckChurch('paramUserId', 'userId')
+  @CheckUserId('userId')
+  @CheckChurch({
+    checkBy: 'paramMembershipId',
+    key: 'id',
+    churchRolesBypass: [churchRoles.pastor.id],
+  })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) userId: number,
@@ -101,6 +107,14 @@ export class MembershipsController {
   }
   @ApiOperation({ summary: 'Update membership by id' })
   @Patch(':id')
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch({
+    checkBy: 'paramMembershipId',
+    key: 'id',
+    churchRolesBypass: [churchRoles.pastor.id],
+    churchRoleStrict: true,
+  })
+  @CheckUserId('userId')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) userId: number,
@@ -123,6 +137,14 @@ export class MembershipsController {
   }
   @ApiOperation({ summary: 'Delete membership by id' })
   @Delete(':id')
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch({
+    checkBy: 'paramMembershipId',
+    key: 'id',
+    churchRolesBypass: [churchRoles.pastor.id],
+    churchRoleStrict: true,
+  })
+  @CheckUserId('userId')
   async remove(
     @Param('id', ParseIntPipe) id: number,
     @Param('userId', ParseIntPipe) userId: number,

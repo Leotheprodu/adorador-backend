@@ -1,20 +1,37 @@
 import { SetMetadata } from '@nestjs/common';
 
 export const CHECK_USER_ID_KEY = 'checkUserId';
-export const CheckUserId = (param: string) =>
+export type CheckUserIdType = string;
+export const CheckUserId = (param: CheckUserIdType) =>
   SetMetadata(CHECK_USER_ID_KEY, param);
 
 export const CHECK_LOGIN_STATUS = 'checkLoginStatus';
-export const CheckLoginStatus = (condition: 'loggedIn' | 'notLoggedIn') =>
+export type CheckLoginStatusType = 'loggedIn' | 'notLoggedIn';
+export const CheckLoginStatus = (condition: CheckLoginStatusType) =>
   SetMetadata(CHECK_LOGIN_STATUS, condition);
 
 export const APP_ROLE_KEY = 'appRoles';
-export const AppRole = (...roles: number[]) => SetMetadata(APP_ROLE_KEY, roles);
-
-export const CHURCH_ROLE_KEY = 'churchRoles';
-export const ChurchRole = (roles: number[], userIdParam: string) =>
-  SetMetadata(CHURCH_ROLE_KEY, { roles, userIdParam });
+export type AppRoleType = number[];
+export const AppRole = (...roles: AppRoleType) =>
+  SetMetadata(APP_ROLE_KEY, roles);
 
 export const CHECK_CHURCH = 'checkChurch';
-export const CheckChurch = (checkBy: 'paramUserId', key: string) =>
-  SetMetadata(CHECK_CHURCH, { checkBy, key });
+export type CheckChurchType = {
+  checkBy: 'paramUserId' | 'bodyChurchId' | 'paramMembershipId';
+  key: string;
+  churchRolesBypass?: number[];
+  churchRoleStrict?: boolean;
+};
+
+export const CheckChurch = ({
+  checkBy,
+  key,
+  churchRolesBypass,
+  churchRoleStrict,
+}: CheckChurchType) =>
+  SetMetadata(CHECK_CHURCH, {
+    checkBy,
+    key,
+    churchRolesBypass,
+    churchRoleStrict,
+  });

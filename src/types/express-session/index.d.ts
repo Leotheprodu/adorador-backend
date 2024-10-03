@@ -9,7 +9,7 @@ declare module 'express-session' {
     memberships: {
       id: number;
       church: { id: number; name: string };
-      roles: { id: number; name: string }[];
+      roles: { id: number; name: string; churchRoleId: number }[];
       since: Date;
     }[];
   }
