@@ -20,9 +20,16 @@ import { catchHandle } from 'src/chore/utils/catchHandle';
 import { IsNotLoggedInGuard } from 'src/auth/guards/is-not-logged-in/is-not-logged-in.guard';
 import { UserStatusGuard } from 'src/users/guards/user-status/user-status.guard';
 import { CreateChurchDto } from './dto/create-church.dto';
+import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import {
+  AppRole,
+  CheckLoginStatus,
+} from 'src/auth/decorators/permissions.decorators';
+import { userRoles } from 'config/constants';
 
 @Controller('churches')
 @ApiTags('churches')
+@UseGuards(PermissionsGuard)
 export class ChurchesController {
   constructor(private churchesService: ChurchesService) {}
 
@@ -41,8 +48,8 @@ export class ChurchesController {
   }
 
   @Post()
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @AppRole(userRoles.admin.id)
   async createChurch(@Res() res: Response, @Body() body: CreateChurchDto) {
     try {
       const churchData = await this.churchesService.createChurch(body);
@@ -56,7 +63,7 @@ export class ChurchesController {
   }
 
   @Get(':id')
-  @UseGuards(IsNotLoggedInGuard)
+  @CheckLoginStatus('loggedIn')
   async getChurch(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
     try {
       const churchData = await this.churchesService.getChurch(id);
@@ -70,8 +77,8 @@ export class ChurchesController {
   }
 
   @Patch(':id')
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @AppRole(userRoles.admin.id)
   async updateChurch(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
@@ -89,8 +96,8 @@ export class ChurchesController {
   }
 
   @Delete(':id')
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @AppRole(userRoles.admin.id)
   async deleteChurch(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
