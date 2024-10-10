@@ -14,16 +14,21 @@ import {
 import { UsersService } from './users.service';
 import { Response } from 'express';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UserStatusGuard } from './guards/user-status/user-status.guard';
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { EmailService } from 'src/email/email.service';
-import { IsLoggedInGuard } from 'src/auth/guards/is-logged-in/is-logged-in.guard';
-import { IsNotLoggedInGuard } from 'src/auth/guards/is-not-logged-in/is-not-logged-in.guard';
 import { catchHandle } from 'src/chore/utils/catchHandle';
+import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import {
+  AppRole,
+  CheckLoginStatus,
+  CheckUserId,
+} from 'src/auth/decorators/permissions.decorators';
+import { userRoles } from 'config/constants';
 
 @Controller('users')
 @ApiTags('users')
+@UseGuards(PermissionsGuard)
 export class UsersController {
   constructor(
     private usersService: UsersService,
@@ -32,7 +37,7 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Get all users' })
   @Get()
-  @UseGuards(IsNotLoggedInGuard)
+  @CheckLoginStatus('loggedIn')
   async getUsers(@Res() res: Response) {
     try {
       const usersData = await this.usersService.getUsers();
@@ -51,8 +56,8 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Get user by id' })
   @Get(':id')
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @CheckUserId('id')
   async getUser(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
     try {
       const user = await this.usersService.getUser(id);
@@ -67,7 +72,7 @@ export class UsersController {
   }
   @ApiOperation({ summary: 'Create user' })
   @Post()
-  @UseGuards(IsLoggedInGuard)
+  @CheckLoginStatus('notLoggedIn')
   async createUser(@Res() res: Response, @Body() body: CreateUserDto) {
     try {
       const newUser = await this.usersService.createUser(body);
@@ -89,8 +94,8 @@ export class UsersController {
   }
   @ApiOperation({ summary: 'Delete user by id' })
   @Delete(':id')
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @AppRole(userRoles.admin.id)
   async deleteUser(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
@@ -105,8 +110,8 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Update user by id' })
   @Post(':id')
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @CheckUserId('id')
   async updateUser(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
@@ -122,8 +127,8 @@ export class UsersController {
 
   @ApiOperation({ summary: 'Update role of user' })
   @Get('/add-role/:id/:roleId')
-  @UseGuards(IsNotLoggedInGuard)
-  @UseGuards(UserStatusGuard)
+  @CheckLoginStatus('loggedIn')
+  @AppRole(userRoles.admin.id)
   async addRole(
     @Res() res: Response,
     @Param('id', ParseIntPipe) userId: number,
@@ -138,7 +143,8 @@ export class UsersController {
   }
   @ApiOperation({ summary: 'Delete role of user' })
   @Get('/delete-role/:id/:roleId')
-  @UseGuards(IsNotLoggedInGuard)
+  @CheckLoginStatus('loggedIn')
+  @AppRole(userRoles.admin.id)
   async removeRole(
     @Res() res: Response,
     @Param('id', ParseIntPipe) userId: number,

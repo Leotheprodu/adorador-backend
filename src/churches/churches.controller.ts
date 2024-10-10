@@ -17,8 +17,6 @@ import { ChurchesService } from './churches.service';
 import { ApiGetChurches } from './churches.swagger';
 import { Response } from 'express';
 import { catchHandle } from 'src/chore/utils/catchHandle';
-import { IsNotLoggedInGuard } from 'src/auth/guards/is-not-logged-in/is-not-logged-in.guard';
-import { UserStatusGuard } from 'src/users/guards/user-status/user-status.guard';
 import { CreateChurchDto } from './dto/create-church.dto';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {

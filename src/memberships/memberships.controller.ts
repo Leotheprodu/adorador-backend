@@ -21,7 +21,6 @@ import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { ApiCreateMembership } from './memberships.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {
-  AppRole,
   CheckChurch,
   CheckLoginStatus,
   CheckUserId,

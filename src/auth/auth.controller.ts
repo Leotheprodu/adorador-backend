@@ -14,10 +14,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Response } from 'express';
 import { LoginDto } from './dto/login.dto';
-import { IsLoggedInGuard } from './guards/is-logged-in/is-logged-in.guard';
 import { UsersService } from 'src/users/users.service';
 import { SessionData } from 'express-session';
-import { IsNotLoggedInGuard } from './guards/is-not-logged-in/is-not-logged-in.guard';
 import {
   ApiLogin,
   ApiLogout,
@@ -26,9 +24,12 @@ import {
 import { EmailService } from 'src/email/email.service';
 import { userRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
+import { PermissionsGuard } from './guards/permissions/permissions.guard';
+import { CheckLoginStatus } from './decorators/permissions.decorators';
 
 @Controller('auth')
 @ApiTags('auth')
+@UseGuards(PermissionsGuard)
 export class AuthController {
   constructor(
     private authService: AuthService,
@@ -38,7 +39,7 @@ export class AuthController {
 
   @ApiLogin()
   @Post('/login')
-  @UseGuards(IsLoggedInGuard)
+  @CheckLoginStatus('notLoggedIn')
   async login(
     @Res() res: Response,
     @Body() body: LoginDto,
@@ -82,7 +83,7 @@ export class AuthController {
 
   @ApiLogout()
   @Get('/logout')
-  @UseGuards(IsNotLoggedInGuard)
+  @CheckLoginStatus('loggedIn')
   async logout(@Res() res: Response, @Session() session: SessionData) {
     try {
       session.isLoggedIn = false;
