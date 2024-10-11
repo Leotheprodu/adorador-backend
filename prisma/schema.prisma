@@ -106,24 +106,36 @@ model Services {
   church    Churches @relation(fields: [churchId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  songs     ServiceSongs[]
 }
 
 model Songs {
   id        Int      @id @default(autoincrement())
   title     String   @unique
-  author    String
+  artist    String?
   churchId  Int
   church    Churches @relation(fields: [churchId], references: [id])
-  type      String  @default("Worship")
-  youtube_link String
-  key       String
-  tempo     String
+  songType      String  @default("worship")
+  youtubeLink String?
+  key       String?
+  tempo     String?
   lyrics    Songs_lyrics[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  services  ServiceSongs[]
+}
+model ServiceSongs {
+  serviceId Int
+  songId    Int
+  service   Services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  song      Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
+  transpose Int      @default(0)
+  order     Int      @default(0)
+
+  @@id([serviceId, songId])
 }
 
-model Songs_Structure {
+model Songs_Structures {
   id        Int      @id @default(autoincrement())
   title     String   @unique
   lyrics    Songs_lyrics[]
@@ -136,7 +148,7 @@ model Songs_lyrics {
   songId    Int
   song      Songs @relation(fields: [songId], references: [id])
   structureId Int
-  structure Songs_Structure @relation(fields: [structureId], references: [id])
+  structure Songs_Structures @relation(fields: [structureId], references: [id])
   lyrics    String
   chords    Songs_Chords[]
   position  Int     @default(0)
@@ -148,10 +160,10 @@ model Songs_Chords {
   id        Int      @id @default(autoincrement())
   lyricId   Int
   lyric     Songs_lyrics @relation(fields: [lyricId], references: [id])
-  root_note      String
-  chord_quality String @default("")
-  slash_chord String @default("")
-  slash_quality String @default("")
+  rootNote      String
+  chordQuality String @default("")
+  slashChord String @default("")
+  slashQuality String @default("")
   position  Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

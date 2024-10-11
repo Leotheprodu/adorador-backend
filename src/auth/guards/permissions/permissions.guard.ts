@@ -46,8 +46,13 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // 0. Si el usuario es Admin, permitir acceso
-    if (session && session?.roles.includes(userRoles.admin.id)) {
-      return true;
+    if (
+      !checkLoginStatus ||
+      (checkLoginStatus && checkLoginStatus !== 'notLoggedIn')
+    ) {
+      if (session && session?.roles.includes(userRoles.admin.id)) {
+        return true;
+      }
     }
 
     // 1. Verificar si el userId coincide con el usuario autenticado
