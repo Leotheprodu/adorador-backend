@@ -13,18 +13,25 @@ export class SongsService {
   }
 
   async findAll() {
-    return `This action returns all songs`;
+    return await this.prisma.songs.findMany();
   }
 
   async findOne(id: number) {
-    return `This action returns a #${id} song`;
+    return await this.prisma.songs.findUnique({
+      where: { id },
+    });
   }
 
   async update(id: number, updateSongDto: UpdateSongDto) {
-    return `This action updates a #${id} song`;
+    return await this.prisma.songs.update({
+      where: { id },
+      data: updateSongDto,
+    });
   }
 
   async remove(id: number) {
-    return `This action removes a #${id} song`;
+    return await this.prisma.songs.delete({
+      where: { id },
+    });
   }
 }

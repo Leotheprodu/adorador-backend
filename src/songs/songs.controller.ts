@@ -9,6 +9,7 @@ import {
   UseGuards,
   Res,
   HttpStatus,
+  Session,
 } from '@nestjs/common';
 import { SongsService } from './songs.service';
 import { CreateSongDto } from './dto/create-song.dto';
@@ -22,6 +23,7 @@ import {
 import { churchRoles } from 'config/constants';
 import { Response } from 'express';
 import { catchHandle } from 'src/chore/utils/catchHandle';
+import { SessionData } from 'express-session';
 
 @Controller('songs')
 @ApiTags('Songs')
@@ -47,22 +49,40 @@ export class SongsController {
   }
 
   @Get()
-  async findAll() {
-    return this.songsService.findAll();
+  async findAll(@Res() res: Response) {
+    try {
+      const songs = await this.songsService.findAll();
+      res.status(HttpStatus.OK).send(songs);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string) {
+  async findOne(
+    @Session() session: SessionData,
+    @Res() res: Response,
+    @Param('id') id: string,
+  ) {
     return this.songsService.findOne(+id);
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() updateSongDto: UpdateSongDto) {
+  async update(
+    @Session() session: SessionData,
+    @Res() res: Response,
+    @Param('id') id: string,
+    @Body() updateSongDto: UpdateSongDto,
+  ) {
     return this.songsService.update(+id, updateSongDto);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
+  async remove(
+    @Session() session: SessionData,
+    @Res() res: Response,
+    @Param('id') id: string,
+  ) {
     return this.songsService.remove(+id);
   }
 }
