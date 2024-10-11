@@ -44,15 +44,17 @@ export class PermissionsGuard implements CanActivate {
       CHECK_CHURCH,
       context.getHandler(),
     );
-
+    // revisar si el usuario está autenticado.
+    // depende de lo que se necesite en cada controlador se deja pasar o no
     checkLoginStatusHandle(checkLoginStatus, session);
-
+    // revisar si el usuario es administrador
+    // si es un admin, no importa los requisitos va a dejar avanzar al controlador
     checkAdminHandle(session, checkLoginStatus);
-
+    // revisar si el usuario tiene los roles necesarios para acceder al controlador
     checkAppRolesHandle(appRoles, session);
-
+    // revisa si el usuario es miembro de la iglesia y si tiene los roles necesarios
     checkChurchHandle(checkChurch, session, request, this.membershipsService);
-
+    // revisa si el usuario autenticado es el mismo que se realiza la petición
     checkUserIdParamHandle(checkUserIdParam, session, request);
 
     return true;
