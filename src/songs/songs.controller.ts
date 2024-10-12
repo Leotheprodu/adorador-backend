@@ -10,6 +10,7 @@ import {
   Res,
   HttpStatus,
   Session,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { SongsService } from './songs.service';
 import { CreateSongDto } from './dto/create-song.dto';
@@ -24,6 +25,7 @@ import { churchRoles } from 'config/constants';
 import { Response } from 'express';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { SessionData } from 'express-session';
+import { checkChurchBySongId } from './utils/checkChurchBySongId';
 
 @Controller('songs')
 @ApiTags('Songs')
@@ -59,30 +61,52 @@ export class SongsController {
   }
 
   @Get(':id')
-  async findOne(
-    @Session() session: SessionData,
-    @Res() res: Response,
-    @Param('id') id: string,
-  ) {
-    return this.songsService.findOne(+id);
+  @CheckLoginStatus('loggedIn')
+  async findOne(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+    try {
+      const song = await this.songsService.findOne(id);
+      res.status(HttpStatus.OK).send(song);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 
   @Patch(':id')
+  @CheckLoginStatus('loggedIn')
   async update(
     @Session() session: SessionData,
     @Res() res: Response,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateSongDto: UpdateSongDto,
   ) {
-    return this.songsService.update(+id, updateSongDto);
+    try {
+      await checkChurchBySongId(session, this.songsService, id, [
+        churchRoles.musician.id,
+        churchRoles.worshipLeader.id,
+      ]);
+      const song = await this.songsService.update(id, updateSongDto);
+      res.status(HttpStatus.OK).send(song);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 
   @Delete(':id')
+  @CheckLoginStatus('loggedIn')
   async remove(
     @Session() session: SessionData,
     @Res() res: Response,
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
   ) {
-    return this.songsService.remove(+id);
+    try {
+      await checkChurchBySongId(session, this.songsService, id, [
+        churchRoles.musician.id,
+        churchRoles.worshipLeader.id,
+      ]);
+      const song = await this.songsService.remove(id);
+      res.status(HttpStatus.OK).send(song);
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 }
