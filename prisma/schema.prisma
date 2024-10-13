@@ -145,7 +145,7 @@ model Songs_Structures {
 
 model Songs_lyrics {
   id        Int      @id @default(autoincrement())
-  songId    Int
+  songId    Int                                       
   song      Songs @relation(fields: [songId], references: [id])
   structureId Int
   structure Songs_Structures @relation(fields: [structureId], references: [id])

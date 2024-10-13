@@ -51,6 +51,7 @@ export class SongsController {
   }
 
   @Get()
+  @CheckLoginStatus('loggedIn')
   async findAll(@Res() res: Response) {
     try {
       const songs = await this.songsService.findAll();

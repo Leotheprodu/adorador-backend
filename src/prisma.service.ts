@@ -7,6 +7,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     await this.$connect();
     await this.initializeRoles();
     await this.initializeChurchRoles();
+    await this.initializeSongsStructures();
   }
 
   async initializeRoles() {
@@ -77,6 +78,42 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         ],
       });
       console.log('Initial church roles created.');
+    }
+  }
+
+  async initializeSongsStructures() {
+    const existingStructures = await this.songs_Structures.findMany();
+
+    if (existingStructures.length === 0) {
+      await this.songs_Structures.createMany({
+        data: [
+          {
+            title: 'intro',
+          },
+          {
+            title: 'verse',
+          },
+          {
+            title: 'pre-chorus',
+          },
+          {
+            title: 'chorus',
+          },
+          {
+            title: 'bridge',
+          },
+          {
+            title: 'interlude',
+          },
+          {
+            title: 'solo',
+          },
+          {
+            title: 'outro',
+          },
+        ],
+      });
+      console.log('Initial song structures created.');
     }
   }
 }
