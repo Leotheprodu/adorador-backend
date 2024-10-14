@@ -1,26 +1,57 @@
 import { Injectable } from '@nestjs/common';
 import { CreateSongsChordDto } from './dto/create-songs-chord.dto';
 import { UpdateSongsChordDto } from './dto/update-songs-chord.dto';
+import { PrismaService } from 'src/prisma.service';
 
 @Injectable()
 export class SongsChordsService {
-  create(createSongsChordDto: CreateSongsChordDto) {
-    return 'This action adds a new songsChord';
+  constructor(private prima: PrismaService) {}
+  create(createSongsChordDto: CreateSongsChordDto, lyricId: number) {
+    return this.prima.songs_Chords.create({
+      data: {
+        ...createSongsChordDto,
+        lyricId: lyricId,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all songsChords`;
+  findAll(lyricId: number) {
+    return this.prima.songs_Chords.findMany({
+      where: {
+        lyricId,
+      },
+    });
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} songsChord`;
+  findOne(id: number, lyricId: number) {
+    return this.prima.songs_Chords.findUnique({
+      where: {
+        id,
+        lyricId,
+      },
+    });
   }
 
-  update(id: number, updateSongsChordDto: UpdateSongsChordDto) {
-    return `This action updates a #${id} songsChord`;
+  update(
+    id: number,
+    lyricId: number,
+    updateSongsChordDto: UpdateSongsChordDto,
+  ) {
+    return this.prima.songs_Chords.update({
+      where: {
+        id,
+        lyricId,
+      },
+      data: updateSongsChordDto,
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} songsChord`;
+  remove(id: number, lyricId: number) {
+    return this.prima.songs_Chords.delete({
+      where: {
+        id,
+        lyricId,
+      },
+    });
   }
 }

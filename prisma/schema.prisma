@@ -161,9 +161,9 @@ model Songs_Chords {
   lyricId   Int
   lyric     Songs_lyrics @relation(fields: [lyricId], references: [id])
   rootNote      String
-  chordQuality String @default("")
-  slashChord String @default("")
-  slashQuality String @default("")
+  chordQuality String? @default("")
+  slashChord String? @default("")
+  slashQuality String? @default("")
   position  Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

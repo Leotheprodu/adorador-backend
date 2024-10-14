@@ -53,6 +53,12 @@ export class MembershipsController {
         createMembershipDto,
         userId,
       );
+      if (!membership) {
+        throw new HttpException(
+          'Failed to create membership',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       res.status(HttpStatus.CREATED).send(membership);
     } catch (e) {
       catchHandle(e);

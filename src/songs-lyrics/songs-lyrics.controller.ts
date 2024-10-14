@@ -11,6 +11,7 @@ import {
   ParseIntPipe,
   Session,
   HttpStatus,
+  HttpException,
 } from '@nestjs/common';
 import { SongsLyricsService } from './songs-lyrics.service';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
@@ -28,6 +29,7 @@ import { CheckLoginStatus } from 'src/auth/decorators/permissions.decorators';
 @Controller('songs/:songId/lyrics')
 @ApiTags('Songs Lyrics')
 @UseGuards(PermissionsGuard)
+@CheckLoginStatus('loggedIn')
 export class SongsLyricsController {
   constructor(
     private readonly songsLyricsService: SongsLyricsService,
@@ -35,7 +37,6 @@ export class SongsLyricsController {
   ) {}
 
   @Post()
-  @CheckLoginStatus('loggedIn')
   async create(
     @Body() createSongsLyricDto: CreateSongsLyricDto,
     @Session() session: SessionData,
@@ -47,10 +48,26 @@ export class SongsLyricsController {
         churchRoles.musician.id,
         churchRoles.worshipLeader.id,
       ]);
+
+      const lyrics = await this.songsLyricsService.findAll(songId);
+      const lyricsPosition = lyrics.map((lyric) => lyric.position);
+      if (lyricsPosition.includes(createSongsLyricDto.position)) {
+        throw new HttpException(
+          'Position already taken',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const lyric = await this.songsLyricsService.create(
         createSongsLyricDto,
         songId,
       );
+      if (!lyric) {
+        throw new HttpException(
+          'Lyric not created',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
       res.status(HttpStatus.OK).send(lyric);
     } catch (e) {
       catchHandle(e);
@@ -58,13 +75,15 @@ export class SongsLyricsController {
   }
 
   @Get()
-  @CheckLoginStatus('loggedIn')
   async findAll(
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
     try {
       const lyrics = await this.songsLyricsService.findAll(songId);
+      if (!lyrics) {
+        throw new HttpException('Lyrics not found', HttpStatus.NOT_FOUND);
+      }
       res.status(HttpStatus.OK).send(lyrics);
     } catch (e) {
       catchHandle(e);
@@ -72,7 +91,6 @@ export class SongsLyricsController {
   }
 
   @Get(':id')
-  @CheckLoginStatus('loggedIn')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Session() session: SessionData,
@@ -85,6 +103,9 @@ export class SongsLyricsController {
         churchRoles.worshipLeader.id,
       ]);
       const lyric = await this.songsLyricsService.findOne(id, songId);
+      if (!lyric) {
+        throw new HttpException('Lyric not found', HttpStatus.NOT_FOUND);
+      }
       res.status(HttpStatus.OK).send(lyric);
     } catch (e) {
       catchHandle(e);
@@ -92,7 +113,6 @@ export class SongsLyricsController {
   }
 
   @Patch(':id')
-  @CheckLoginStatus('loggedIn')
   async update(
     @Session() session: SessionData,
     @Res() res: Response,
@@ -105,11 +125,25 @@ export class SongsLyricsController {
         churchRoles.musician.id,
         churchRoles.worshipLeader.id,
       ]);
+      const lyrics = await this.songsLyricsService.findAll(songId);
+      const lyricsPosition = lyrics.map((lyric) => lyric.position);
+      if (lyricsPosition.includes(updateSongsLyricDto.position)) {
+        throw new HttpException(
+          'Position already taken',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
       const lyric = await this.songsLyricsService.update(
         id,
         songId,
         updateSongsLyricDto,
       );
+      if (!lyric) {
+        throw new HttpException(
+          'Lyric not updated',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
       res.status(HttpStatus.OK).send(lyric);
     } catch (e) {
       catchHandle(e);
@@ -117,7 +151,6 @@ export class SongsLyricsController {
   }
 
   @Delete(':id')
-  @CheckLoginStatus('loggedIn')
   async remove(
     @Param('id', ParseIntPipe) id: number,
     @Session() session: SessionData,
@@ -129,7 +162,13 @@ export class SongsLyricsController {
         churchRoles.musician.id,
         churchRoles.worshipLeader.id,
       ]);
-      await this.songsLyricsService.remove(id, songId);
+      const lyric = await this.songsLyricsService.remove(id, songId);
+      if (!lyric) {
+        throw new HttpException(
+          'Lyric not deleted',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
       res.status(HttpStatus.OK).send({ message: 'Lyric deleted' });
     } catch (e) {
       catchHandle(e);
