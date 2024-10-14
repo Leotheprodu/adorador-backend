@@ -61,7 +61,7 @@ model Churches {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   memberships Memberships[]
-  services  Services[]
+  events  Events[]
   songs     Songs[]
 }
 model Memberships {
@@ -97,16 +97,15 @@ model ChurchRoles {
   description String?      // Descripción del rol si es necesario
   churchRoles ChurchMemberRoles[]
 }
-model Services {
+model Events {
   id        Int      @id @default(autoincrement())
-  title     String   @unique
-  Date      DateTime
-  time      DateTime
+  title     String
+  date      DateTime
   churchId  Int
   church    Churches @relation(fields: [churchId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  songs     ServiceSongs[]
+  songs     SongsEvents[]
 }
 
 model Songs {
@@ -122,12 +121,12 @@ model Songs {
   lyrics    Songs_lyrics[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  services  ServiceSongs[]
+  services  SongsEvents[]
 }
-model ServiceSongs {
+model SongsEvents {
   serviceId Int
   songId    Int
-  service   Services @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  event   Events @relation(fields: [serviceId], references: [id], onDelete: Cascade)
   song      Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
   transpose Int      @default(0)
   order     Int      @default(0)

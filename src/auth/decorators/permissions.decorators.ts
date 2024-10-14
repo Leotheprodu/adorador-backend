@@ -17,7 +17,11 @@ export const AppRole = (...roles: AppRoleType) =>
 
 export const CHECK_CHURCH = 'checkChurch';
 export type CheckChurchType = {
-  checkBy: 'paramUserId' | 'bodyChurchId' | 'paramMembershipId';
+  checkBy:
+    | 'paramUserId'
+    | 'bodyChurchId'
+    | 'paramChurchId'
+    | 'paramMembershipId';
   key: string;
   churchRolesBypass?: number[];
   churchRoleStrict?: boolean;

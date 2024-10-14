@@ -50,8 +50,9 @@ export const checkChurchHandle = async (
       }
       // verifica que userParamschurchIds contenga al menos un elemento de userReqChurchIds
     }
-    if (checkBy === 'bodyChurchId') {
-      const churchId = request.body[key]; // Obtener el churchId desde el cuerpo de la petición
+    if (checkBy === 'bodyChurchId' || checkBy === 'paramChurchId') {
+      const churchId =
+        checkBy === 'bodyChurchId' ? request.body[key] : request.params[key]; // Obtener el churchId desde el cuerpo de la petición
       if (!userReqChurchIds.includes(parseInt(churchId, 10))) {
         throw new ForbiddenException(
           'Church does not belong to the user authenticated.',
@@ -73,7 +74,7 @@ export const checkChurchHandle = async (
             'User does not have the required role in the church.',
           );
         }
-      } //NOTE si se da el caso que el usuario tiene otra membresía en otra iglesia, y tiene el rol en otra membresía creo que lo deja hacer cambios, hay que revisar
+      }
     }
   }
 };
