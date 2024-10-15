@@ -121,17 +121,18 @@ model Songs {
   lyrics    Songs_lyrics[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  services  SongsEvents[]
+  events  SongsEvents[]
 }
 model SongsEvents {
-  serviceId Int
+  eventId Int
   songId    Int
-  event   Events @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  event   Events @relation(fields: [eventId], references: [id], onDelete: Cascade)
   song      Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
   transpose Int      @default(0)
   order     Int      @default(0)
 
-  @@id([serviceId, songId])
+
+  @@id([eventId, songId])
 }
 
 model Songs_Structures {

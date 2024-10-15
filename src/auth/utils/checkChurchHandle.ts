@@ -13,7 +13,7 @@ export const checkChurchHandle = async (
   // 3. Verificar si el elemento que se va a editar pertenece a la iglesia del usuario autenticado
   if (checkChurch) {
     const { checkBy, key, churchRolesBypass, churchRoleStrict } = checkChurch;
-    const userReqMemberships = session.memberships;
+    const userReqMemberships = session.memberships ?? [];
     const userReqChurchIds = userReqMemberships.map(
       (membership) => membership.church.id,
     );
@@ -60,12 +60,11 @@ export const checkChurchHandle = async (
       }
       if (churchRolesBypass && churchRolesBypass.length > 0) {
         const userReqMembership = userReqMemberships?.find(
-          (membership) => membership.church.id === churchId,
+          (membership) => membership.church.id === parseInt(churchId, 10),
         );
 
-        const userReqRoleIds = userReqMembership.roles.map(
-          (role) => role.churchRoleId,
-        );
+        const userReqRoleIds =
+          userReqMembership.roles.map((role) => role.churchRoleId) ?? [];
 
         if (churchRolesBypass.some((role) => userReqRoleIds.includes(role))) {
           return true;

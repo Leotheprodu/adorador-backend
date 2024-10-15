@@ -1,7 +1,6 @@
 import { SessionData } from 'express-session';
 import { CheckUserIdType } from '../decorators/permissions.decorators';
 import { ForbiddenException } from '@nestjs/common';
-import { userRoles } from 'config/constants';
 
 export const checkLoginStatusHandle = (
   checkLoginStatus: CheckUserIdType,

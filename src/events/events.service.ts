@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from 'src/prisma.service';
+import {
+  AddSongsToEventDto,
+  RemoveSongsToEventDto,
+} from './dto/add-songs-to-event.dto';
+import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 
 @Injectable()
 export class EventsService {
@@ -13,15 +18,57 @@ export class EventsService {
     });
   }
 
-  async findAll(churchId: number) {
+  async findAll(churchId: number, includeAllDates: boolean) {
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0); // Establece la hora en 00:00:00 para que incluya los eventos de hoy
     return this.prisma.events.findMany({
-      where: { churchId },
+      where: {
+        churchId,
+        ...(includeAllDates ? {} : { date: { gt: currentDate } }), // Aplica el filtro de fecha solo si includeAllDates es false
+      },
+      orderBy: {
+        date: 'asc', // Ordena por fecha, de más viejo a más nuevo
+      },
+      omit: {
+        createdAt: true,
+        updatedAt: true,
+        churchId: true,
+      },
+      include: {
+        _count: {
+          select: {
+            songs: true,
+          },
+        },
+      },
     });
   }
 
   async findOne(id: number, churchId: number) {
     return this.prisma.events.findUnique({
       where: { id, churchId },
+      select: {
+        id: true,
+        title: true,
+        date: true,
+
+        songs: {
+          select: {
+            transpose: true,
+            order: true,
+            song: {
+              select: {
+                id: true,
+                title: true,
+                songType: true,
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
     });
   }
 
@@ -35,6 +82,108 @@ export class EventsService {
   async remove(id: number, churchId: number) {
     return this.prisma.events.delete({
       where: { id, churchId },
+    });
+  }
+
+  async addSongsToEvent(id: number, addSongsToEventDto: AddSongsToEventDto) {
+    const { songDetails } = addSongsToEventDto;
+
+    const data = songDetails.map(({ songId, order, transpose }) => ({
+      eventId: id,
+      songId,
+      order,
+      transpose,
+    }));
+
+    return this.prisma.songsEvents.createMany({
+      data,
+    });
+  }
+  async deleteSongsFromEvent(id: number, songs: RemoveSongsToEventDto) {
+    const { songIds } = songs;
+    return this.prisma.songsEvents.deleteMany({
+      where: {
+        eventId: id,
+        songId: {
+          in: songIds,
+        },
+      },
+    });
+  }
+  async updateSongsEvent(
+    id: number,
+    updateSongsEventDto: UpdateSongsEventDto,
+  ): Promise<void> {
+    const { songDetails } = updateSongsEventDto;
+
+    const updatePromises = songDetails.map(({ songId, order, transpose }) => {
+      const updateData: { order?: number; transpose?: number } = {};
+      if (order !== undefined) updateData.order = order;
+      if (transpose !== undefined) updateData.transpose = transpose;
+
+      return this.prisma.songsEvents.update({
+        where: {
+          eventId_songId: {
+            eventId: id,
+            songId,
+          },
+        },
+        data: updateData,
+      });
+    });
+
+    await Promise.all(updatePromises);
+  }
+
+  async getEventSongs(id: number, churchId: number) {
+    return this.prisma.events.findUnique({
+      where: { id, churchId },
+      select: {
+        id: true,
+        title: true,
+        date: true,
+        songs: {
+          select: {
+            songId: true,
+            order: true,
+            transpose: true,
+            song: {
+              select: {
+                id: true,
+                title: true,
+                songType: true,
+                artist: true,
+                key: true,
+                tempo: true,
+                youtubeLink: true,
+                lyrics: {
+                  select: {
+                    id: true,
+                    position: true,
+                    lyrics: true,
+                    structure: {
+                      select: {
+                        id: true,
+                        title: true,
+                      },
+                    },
+                    chords: {
+                      omit: {
+                        updatedAt: true,
+                        createdAt: true,
+                        lyricId: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          orderBy: {
+            order: 'asc',
+          },
+        },
+      },
     });
   }
 }

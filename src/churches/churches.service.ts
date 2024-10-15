@@ -7,7 +7,29 @@ export class ChurchesService {
   constructor(private prisma: PrismaService) {}
 
   async getChurches() {
-    return await this.prisma.churches.findMany();
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
+    return await this.prisma.churches.findMany({
+      omit: {
+        createdAt: true,
+        updatedAt: true,
+      },
+      include: {
+        events: {
+          where: {
+            date: {
+              gt: currentDate,
+            },
+          },
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+            churchId: true,
+          },
+        },
+      },
+    });
   }
 
   async createChurch(data: CreateChurchDto) {
