@@ -72,3 +72,5 @@ export const churchRoles = {
     name: 'Danza y Teatro',
   },
 };
+
+export const corsLink = process.env.FRONTEND_URL;
