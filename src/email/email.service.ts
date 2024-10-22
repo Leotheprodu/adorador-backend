@@ -55,10 +55,10 @@ export class EmailService {
         await this.sendEmail({
           email,
           subject: 'verifique su correo electronico',
-          from: `"Ghost Cloud" <${process.env.EMAIL_USERNAME}>`,
+          from: `"Adorador" <${process.env.EMAIL_USERNAME}>`,
           template: 'user-sign_up',
           context: {
-            link: `${frontEndUrl}/verificar-email?token=${token}`,
+            link: `${frontEndUrl}/auth/verify-email?token=${token}`,
           },
         });
       }

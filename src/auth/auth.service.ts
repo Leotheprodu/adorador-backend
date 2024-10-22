@@ -53,7 +53,7 @@ export class AuthService {
     return user;
   }
 
-  async verifyEmail(token: string) {
+  /*   async verifyEmail(token: string) {
     try {
       const tempToken = await this.prisma.temporal_token_pool.findUnique({
         where: { token },
@@ -66,10 +66,10 @@ export class AuthService {
           data: { status: 'active' },
         });
         await this.prisma.temporal_token_pool.delete({ where: { token } });
-        return { status: 'active', email: tempToken.userEmail, id: data.id };
+        return { status: 'active', email: data.email, id: data.id };
       }
     } catch (error) {
       throw new Error('Error verifying email');
     }
-  }
+  } */
 }

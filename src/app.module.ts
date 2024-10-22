@@ -10,6 +10,7 @@ import { ChurchRolesModule } from './church-roles/church-roles.module';
 import { ChurchMemberRolesModule } from './church-member-roles/church-member-roles.module';
 import { SongsLyricsModule } from './songs-lyrics/songs-lyrics.module';
 import { SongsChordsModule } from './songs-chords/songs-chords.module';
+import { TemporalTokenPoolModule } from './temporal-token-pool/temporal-token-pool.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { SongsChordsModule } from './songs-chords/songs-chords.module';
     ChurchMemberRolesModule,
     SongsLyricsModule,
     SongsChordsModule,
+    TemporalTokenPoolModule,
   ],
   controllers: [],
   providers: [],

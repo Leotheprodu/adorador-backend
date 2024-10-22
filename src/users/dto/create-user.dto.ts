@@ -24,6 +24,10 @@ export class CreateUserDto {
   @IsOptional()
   phone: string;
 
+  @IsString()
+  @IsOptional()
+  birthdate: string | Date;
+
   // contiene 'active' o 'unactive'
   @IsString()
   @IsOptional()

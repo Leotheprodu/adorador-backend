@@ -5,6 +5,7 @@ import { PrismaService } from 'src/prisma.service';
 import { UsersService } from 'src/users/users.service';
 import { EmailService } from 'src/email/email.service';
 import { MembershipsService } from 'src/memberships/memberships.service';
+import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
 
 @Module({
   controllers: [AuthController],
@@ -14,6 +15,7 @@ import { MembershipsService } from 'src/memberships/memberships.service';
     UsersService,
     EmailService,
     MembershipsService,
+    TemporalTokenPoolService,
   ],
 })
 export class AuthModule {}

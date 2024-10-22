@@ -26,6 +26,7 @@ import { userRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { PermissionsGuard } from './guards/permissions/permissions.guard';
 import { CheckLoginStatus } from './decorators/permissions.decorators';
+import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -35,6 +36,7 @@ export class AuthController {
     private authService: AuthService,
     private usersService: UsersService,
     private emailService: EmailService,
+    private temporalTokenPoolService: TemporalTokenPoolService,
   ) {}
 
   @ApiLogin()
@@ -97,11 +99,28 @@ export class AuthController {
   @Get('/verify-email/:token')
   async verifyEmail(@Res() res: Response, @Param('token') token: string) {
     try {
-      const verifyData = await this.authService.verifyEmail(token);
-      if (verifyData.status !== 'active')
+      const temporalTokenData =
+        await this.temporalTokenPoolService.findToken(token);
+      if (!temporalTokenData) {
         throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
-      await this.usersService.addRole(verifyData.id, userRoles.user.id);
-      await this.emailService.subscribeToNewsLetter(verifyData.email);
+      }
+      const user = await this.usersService.activateUserByEmail(
+        temporalTokenData.userEmail,
+      );
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      const deletedToken =
+        await this.temporalTokenPoolService.deleteToken(token);
+      if (!deletedToken) {
+        throw new HttpException(
+          'Error deleting token',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      await this.usersService.addRole(user.id, userRoles.user.id);
+      await this.emailService.subscribeToNewsLetter(user.email);
       res.status(HttpStatus.OK).send({ status: 'active' });
     } catch (e) {
       catchHandle(e);

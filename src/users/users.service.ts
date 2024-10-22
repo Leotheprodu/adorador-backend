@@ -113,4 +113,11 @@ export class UsersService {
       },
     });
   }
+
+  async activateUserByEmail(email: string) {
+    return await this.prisma.users.update({
+      where: { email },
+      data: { status: 'active' },
+    });
+  }
 }
