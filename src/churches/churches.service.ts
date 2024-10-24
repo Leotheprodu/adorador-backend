@@ -39,8 +39,40 @@ export class ChurchesService {
     }
   }
   async getChurch(id: number) {
+    const currentDate = new Date();
+    currentDate.setHours(0, 0, 0, 0);
+
     return await this.prisma.churches.findUnique({
       where: { id },
+      omit: {
+        createdAt: true,
+        updatedAt: true,
+      },
+
+      include: {
+        _count: {
+          select: {
+            events: true,
+            songs: true,
+            memberships: true,
+          },
+        },
+        events: {
+          where: {
+            date: {
+              gt: currentDate,
+            },
+          },
+          orderBy: {
+            date: 'asc',
+          },
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+            churchId: true,
+          },
+        },
+      },
     });
   }
   async updateChurch(id: number, data: CreateChurchDto) {
