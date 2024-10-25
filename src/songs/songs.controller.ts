@@ -9,7 +9,6 @@ import {
   UseGuards,
   Res,
   HttpStatus,
-  Session,
   ParseIntPipe,
   HttpException,
 } from '@nestjs/common';
@@ -25,10 +24,8 @@ import {
 import { churchRoles } from 'config/constants';
 import { Response } from 'express';
 import { catchHandle } from 'src/chore/utils/catchHandle';
-import { SessionData } from 'express-session';
-import { checkChurchBySongId } from './utils/checkChurchBySongId';
 
-@Controller('songs')
+@Controller('churches/:churchId/songs')
 @ApiTags('Songs')
 @UseGuards(PermissionsGuard)
 @CheckLoginStatus('loggedIn')
@@ -38,13 +35,17 @@ export class SongsController {
   @Post()
   @ApiOperation({ summary: 'Create Song' })
   @CheckChurch({
-    checkBy: 'bodyChurchId',
+    checkBy: 'paramChurchId',
     key: 'churchId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
   })
-  async create(@Res() res: Response, @Body() createSongDto: CreateSongDto) {
+  async create(
+    @Res() res: Response,
+    @Body() createSongDto: CreateSongDto,
+    @Param('churchId', ParseIntPipe) churchId: number,
+  ) {
     try {
-      const song = await this.songsService.create(createSongDto);
+      const song = await this.songsService.create(createSongDto, churchId);
       if (!song) {
         throw new HttpException(
           'Failed to create song',
@@ -58,9 +59,16 @@ export class SongsController {
   }
 
   @Get()
-  async findAll(@Res() res: Response) {
+  @CheckChurch({
+    checkBy: 'paramChurchId',
+    key: 'churchId',
+  })
+  async findAll(
+    @Res() res: Response,
+    @Param('churchId', ParseIntPipe) churchId: number,
+  ) {
     try {
-      const songs = await this.songsService.findAll();
+      const songs = await this.songsService.findAll(churchId);
       if (!songs) {
         throw new HttpException('No songs found', HttpStatus.NOT_FOUND);
       }
@@ -71,9 +79,17 @@ export class SongsController {
   }
 
   @Get(':id')
-  async findOne(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
+  @CheckChurch({
+    checkBy: 'paramChurchId',
+    key: 'churchId',
+  })
+  async findOne(
+    @Res() res: Response,
+    @Param('id', ParseIntPipe) id: number,
+    @Param('churchId', ParseIntPipe) churchId: number,
+  ) {
     try {
-      const song = await this.songsService.findOne(id);
+      const song = await this.songsService.findOne(id, churchId);
       if (!song) {
         throw new HttpException('Song not found', HttpStatus.NOT_FOUND);
       }
@@ -84,18 +100,19 @@ export class SongsController {
   }
 
   @Patch(':id')
+  @CheckChurch({
+    checkBy: 'paramChurchId',
+    key: 'churchId',
+    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
+  })
   async update(
-    @Session() session: SessionData,
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Body() updateSongDto: UpdateSongDto,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, id, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
-      const song = await this.songsService.update(id, updateSongDto);
+      const song = await this.songsService.update(id, updateSongDto, churchId);
       if (!song) {
         throw new HttpException(
           'Failed to update song',
@@ -109,17 +126,18 @@ export class SongsController {
   }
 
   @Delete(':id')
+  @CheckChurch({
+    checkBy: 'paramChurchId',
+    key: 'churchId',
+    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
+  })
   async remove(
-    @Session() session: SessionData,
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
+    @Param('churchId', ParseIntPipe) churchId: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, id, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
-      const song = await this.songsService.remove(id);
+      const song = await this.songsService.remove(id, churchId);
       if (!song) {
         throw new HttpException(
           'Failed to delete song',

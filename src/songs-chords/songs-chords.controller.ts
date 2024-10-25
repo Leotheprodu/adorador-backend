@@ -19,17 +19,24 @@ import { UpdateSongsChordDto } from './dto/update-songs-chord.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { SongsService } from 'src/songs/songs.service';
-import { CheckLoginStatus } from 'src/auth/decorators/permissions.decorators';
+import {
+  CheckChurch,
+  CheckLoginStatus,
+} from 'src/auth/decorators/permissions.decorators';
 import { SessionData } from 'express-session';
 import { Response } from 'express';
 import { churchRoles } from 'config/constants';
-import { checkChurchBySongId } from 'src/songs/utils/checkChurchBySongId';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 
-@Controller('songs/:songId/lyrics/:lyricId/chords')
+@Controller('churches/:churchId/songs/:songId/lyrics/:lyricId/chords')
 @ApiTags('Songs Chords')
 @UseGuards(PermissionsGuard)
 @CheckLoginStatus('loggedIn')
+@CheckChurch({
+  checkBy: 'paramChurchId',
+  key: 'churchId',
+  churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
+})
 export class SongsChordsController {
   constructor(
     private readonly songsChordsService: SongsChordsService,
@@ -39,16 +46,12 @@ export class SongsChordsController {
   @Post()
   async create(
     @Body() createSongsChordDto: CreateSongsChordDto,
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const chords = await this.songsChordsService.findAll(lyricId);
       if (chords.length >= 5) {
         throw new HttpException(
@@ -79,16 +82,12 @@ export class SongsChordsController {
 
   @Get()
   async findAll(
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const chords = await this.songsChordsService.findAll(lyricId);
       if (!chords) {
         throw new HttpException('Chords not found', HttpStatus.NOT_FOUND);
@@ -101,17 +100,13 @@ export class SongsChordsController {
 
   @Get(':id')
   async findOne(
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
     @Param('id', ParseIntPipe) id: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const chord = await this.songsChordsService.findOne(id, lyricId);
       if (!chord) {
         throw new HttpException('Chord not found', HttpStatus.NOT_FOUND);
@@ -124,7 +119,7 @@ export class SongsChordsController {
 
   @Patch(':id')
   async update(
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
@@ -132,10 +127,6 @@ export class SongsChordsController {
     @Body() updateSongsChordDto: UpdateSongsChordDto,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const chords = await this.songsChordsService.findAll(lyricId);
       const chordsPosition = chords.map((chord) => chord.position);
       if (chordsPosition.includes(updateSongsChordDto.position)) {
@@ -160,17 +151,13 @@ export class SongsChordsController {
 
   @Delete(':id')
   async remove(
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
     @Param('id', ParseIntPipe) id: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const chord = await this.songsChordsService.remove(id, lyricId);
       if (!chord)
         throw new HttpException('Chord not removed', HttpStatus.BAD_REQUEST);

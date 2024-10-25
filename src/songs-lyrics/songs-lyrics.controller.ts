@@ -19,17 +19,24 @@ import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { Response } from 'express';
-import { checkChurchBySongId } from 'src/songs/utils/checkChurchBySongId';
 import { SessionData } from 'express-session';
 import { SongsService } from 'src/songs/songs.service';
 import { churchRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
-import { CheckLoginStatus } from 'src/auth/decorators/permissions.decorators';
+import {
+  CheckChurch,
+  CheckLoginStatus,
+} from 'src/auth/decorators/permissions.decorators';
 
-@Controller('songs/:songId/lyrics')
+@Controller('churches/:churchId/songs/:songId/lyrics')
 @ApiTags('Songs Lyrics')
 @UseGuards(PermissionsGuard)
 @CheckLoginStatus('loggedIn')
+@CheckChurch({
+  checkBy: 'paramChurchId',
+  key: 'churchId',
+  churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
+})
 export class SongsLyricsController {
   constructor(
     private readonly songsLyricsService: SongsLyricsService,
@@ -39,16 +46,11 @@ export class SongsLyricsController {
   @Post()
   async create(
     @Body() createSongsLyricDto: CreateSongsLyricDto,
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
-
       const lyrics = await this.songsLyricsService.findAll(songId);
       const lyricsPosition = lyrics.map((lyric) => lyric.position);
       if (lyricsPosition.includes(createSongsLyricDto.position)) {
@@ -77,6 +79,7 @@ export class SongsLyricsController {
   @Get()
   async findAll(
     @Res() res: Response,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
     try {
@@ -93,15 +96,11 @@ export class SongsLyricsController {
   @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) id: number,
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const lyric = await this.songsLyricsService.findOne(id, songId);
       if (!lyric) {
         throw new HttpException('Lyric not found', HttpStatus.NOT_FOUND);
@@ -116,15 +115,12 @@ export class SongsLyricsController {
   async update(
     @Session() session: SessionData,
     @Res() res: Response,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSongsLyricDto: UpdateSongsLyricDto,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const lyrics = await this.songsLyricsService.findAll(songId);
       const lyricsPosition = lyrics.map((lyric) => lyric.position);
       if (lyricsPosition.includes(updateSongsLyricDto.position)) {
@@ -153,15 +149,11 @@ export class SongsLyricsController {
   @Delete(':id')
   async remove(
     @Param('id', ParseIntPipe) id: number,
-    @Session() session: SessionData,
+    @Param('churchId', ParseIntPipe) churchId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
     try {
-      await checkChurchBySongId(session, this.songsService, songId, [
-        churchRoles.musician.id,
-        churchRoles.worshipLeader.id,
-      ]);
       const lyric = await this.songsLyricsService.remove(id, songId);
       if (!lyric) {
         throw new HttpException(

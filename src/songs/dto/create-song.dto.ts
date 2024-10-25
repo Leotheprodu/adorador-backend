@@ -18,10 +18,6 @@ export class CreateSongDto {
   @IsOptional()
   artist: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  churchId: number;
-
   @IsEnum(SongType)
   songType: SongType;
 
