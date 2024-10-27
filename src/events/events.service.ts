@@ -61,6 +61,27 @@ export class EventsService {
                 id: true,
                 title: true,
                 songType: true,
+                key: true,
+                lyrics: {
+                  select: {
+                    id: true,
+                    position: true,
+                    lyrics: true,
+                    structure: {
+                      select: {
+                        id: true,
+                        title: true,
+                      },
+                    },
+                    chords: {
+                      omit: {
+                        updatedAt: true,
+                        createdAt: true,
+                        lyricId: true,
+                      },
+                    },
+                  },
+                },
               },
             },
           },

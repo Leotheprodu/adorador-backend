@@ -198,7 +198,7 @@ export class EventsController {
   ) {
     try {
       /* const songs = this.eventsService.getEventSongs(id); */
-
+      //NOTE Hay que revisar el order de las songs porque no pueden haber dos canciones con el mismo order
       const event = await this.eventsService.addSongsToEvent(
         id,
         addSongsToEventDto,

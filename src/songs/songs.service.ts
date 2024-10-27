@@ -26,6 +26,43 @@ export class SongsService {
   async findOne(id: number, churchId: number) {
     return await this.prisma.songs.findUnique({
       where: { id, churchId },
+      omit: {
+        createdAt: true,
+        updatedAt: true,
+        churchId: true,
+      },
+      include: {
+        lyrics: {
+          orderBy: {
+            position: 'asc',
+          },
+
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+            songId: true,
+            structureId: true,
+          },
+          include: {
+            structure: {
+              omit: {
+                createdAt: true,
+                updatedAt: true,
+              },
+            },
+            chords: {
+              orderBy: {
+                position: 'asc',
+              },
+              omit: {
+                createdAt: true,
+                updatedAt: true,
+                lyricId: true,
+              },
+            },
+          },
+        },
+      },
     });
   }
 
