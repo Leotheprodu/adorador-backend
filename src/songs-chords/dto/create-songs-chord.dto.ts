@@ -1,10 +1,10 @@
 import { IsEnum, IsNotEmpty, IsOptional } from 'class-validator';
 enum positionValues {
-  position1 = 0,
-  position2 = 1,
-  position3 = 2,
-  position4 = 3,
-  position5 = 4,
+  position1 = 1,
+  position2 = 2,
+  position3 = 3,
+  position4 = 4,
+  position5 = 5,
 }
 
 enum rootNotes {
