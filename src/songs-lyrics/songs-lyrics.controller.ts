@@ -59,6 +59,13 @@ export class SongsLyricsController {
           HttpStatus.BAD_REQUEST,
         );
       }
+      // revisa que la ultima posicion no sea mayor a la cantidad de lyrics
+      if (createSongsLyricDto.position > lyrics.length + 1) {
+        throw new HttpException(
+          'Position must be less than or equal to the number of lyrics',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
       const lyric = await this.songsLyricsService.create(
         createSongsLyricDto,
