@@ -27,6 +27,7 @@ model Users {
   tokens    Temporal_token_pool[]
   memberships Memberships[]
   roles     Roles[]
+  eventsManaged Events[]
 }
 model Roles {
   id        Int      @id @default(autoincrement())
@@ -106,6 +107,8 @@ model Events {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   songs     SongsEvents[]
+  eventManagerId Int
+  eventManager Users @relation(fields: [eventManagerId], references: [id])
 }
 
 model Songs {

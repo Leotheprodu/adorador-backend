@@ -71,6 +71,10 @@ export const churchRoles = {
     id: 12,
     name: 'Danza y Teatro',
   },
+  eventWebManager: {
+    id: 13,
+    name: 'Encargado de eventos web',
+  },
 };
 
 export const corsLink = process.env.FRONTEND_URL;

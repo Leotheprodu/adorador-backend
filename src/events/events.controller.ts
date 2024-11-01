@@ -13,6 +13,7 @@ import {
   Res,
   Query,
   ParseBoolPipe,
+  Session,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
@@ -27,6 +28,7 @@ import { churchRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { Response } from 'express';
 import { AddSongsToEventDto } from './dto/add-songs-to-event.dto';
+import { SessionData } from 'express-session';
 
 @Controller('churches/:churchId/events')
 @ApiTags('Events of Church')
@@ -40,11 +42,9 @@ export class EventsController {
     checkBy: 'paramChurchId',
     key: 'churchId',
     churchRolesBypass: [
-      churchRoles.pastor.id,
+      churchRoles.eventWebManager.id,
       churchRoles.worshipLeader.id,
-      churchRoles.youthLeader.id,
       churchRoles.musician.id,
-      churchRoles.deacon.id,
     ],
   })
   @Post()
@@ -52,9 +52,14 @@ export class EventsController {
     @Body() createEventDto: CreateEventDto,
     @Res() res: Response,
     @Param('churchId', ParseIntPipe) churchId: number,
+    @Session() session: SessionData,
   ) {
     try {
-      const service = await this.eventsService.create(createEventDto, churchId);
+      const service = await this.eventsService.create(
+        createEventDto,
+        churchId,
+        session.userId,
+      );
       if (!service) {
         throw new HttpException(
           'Failed to create service',
@@ -94,6 +99,7 @@ export class EventsController {
       catchHandle(e);
     }
   }
+
   @CheckLoginStatus('loggedIn')
   @CheckChurch({
     checkBy: 'paramChurchId',
@@ -119,13 +125,7 @@ export class EventsController {
   @CheckChurch({
     checkBy: 'paramChurchId',
     key: 'churchId',
-    churchRolesBypass: [
-      churchRoles.pastor.id,
-      churchRoles.worshipLeader.id,
-      churchRoles.youthLeader.id,
-      churchRoles.musician.id,
-      churchRoles.deacon.id,
-    ],
+    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
   })
   @Patch(':id')
   async update(
@@ -152,13 +152,7 @@ export class EventsController {
   @CheckChurch({
     checkBy: 'paramChurchId',
     key: 'churchId',
-    churchRolesBypass: [
-      churchRoles.pastor.id,
-      churchRoles.worshipLeader.id,
-      churchRoles.youthLeader.id,
-      churchRoles.musician.id,
-      churchRoles.deacon.id,
-    ],
+    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
   })
   @Delete(':id')
   async remove(
@@ -182,13 +176,7 @@ export class EventsController {
   @CheckChurch({
     checkBy: 'paramChurchId',
     key: 'churchId',
-    churchRolesBypass: [
-      churchRoles.pastor.id,
-      churchRoles.worshipLeader.id,
-      churchRoles.youthLeader.id,
-      churchRoles.musician.id,
-      churchRoles.deacon.id,
-    ],
+    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
   })
   async addSongsToEvent(
     @Param('id', ParseIntPipe) id: number,
@@ -199,6 +187,7 @@ export class EventsController {
     try {
       /* const songs = this.eventsService.getEventSongs(id); */
       //NOTE Hay que revisar el order de las songs porque no pueden haber dos canciones con el mismo order
+
       const event = await this.eventsService.addSongsToEvent(
         id,
         addSongsToEventDto,
@@ -231,6 +220,40 @@ export class EventsController {
         throw new HttpException('No songs found', HttpStatus.NOT_FOUND);
       }
       res.status(HttpStatus.OK).send(songs);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Get(':id/change-event-manager')
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch({
+    checkBy: 'paramChurchId',
+    key: 'churchId',
+    churchRolesBypass: [
+      churchRoles.worshipLeader.id,
+      churchRoles.musician.id,
+      churchRoles.eventWebManager.id,
+    ],
+  })
+  async changeEventManager(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+    @Param('churchId', ParseIntPipe) churchId: number,
+    @Session() session: SessionData,
+  ) {
+    try {
+      const event = await this.eventsService.changeEventManager(
+        id,
+        session.userId,
+      );
+      if (!event) {
+        throw new HttpException(
+          'Event manager not changed',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      res.status(HttpStatus.OK).send({ message: 'Event manager changed' });
     } catch (e) {
       catchHandle(e);
     }

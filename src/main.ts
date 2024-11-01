@@ -48,6 +48,7 @@ async function bootstrap() {
     }),
   );
   app.set('trust proxy', 1);
-  await app.listen(process.env.PORT || 3000, '0.0.0.0');
+  await app.listen(process.env.PORT || 3000, '192.168.100.145');
+  console.log(`Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();

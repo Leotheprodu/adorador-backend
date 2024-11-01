@@ -12,9 +12,13 @@ import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 export class EventsService {
   constructor(private prisma: PrismaService) {}
 
-  async create(createEventDto: CreateEventDto, churchId: number) {
+  async create(
+    createEventDto: CreateEventDto,
+    churchId: number,
+    eventManagerId: number,
+  ) {
     return this.prisma.events.create({
-      data: { ...createEventDto, churchId },
+      data: { ...createEventDto, churchId, eventManagerId },
     });
   }
 
@@ -51,6 +55,7 @@ export class EventsService {
         id: true,
         title: true,
         date: true,
+        eventManagerId: true,
 
         songs: {
           select: {
@@ -205,6 +210,12 @@ export class EventsService {
           },
         },
       },
+    });
+  }
+  async changeEventManager(id: number, eventManagerId: number) {
+    return this.prisma.events.update({
+      where: { id },
+      data: { eventManagerId },
     });
   }
 }

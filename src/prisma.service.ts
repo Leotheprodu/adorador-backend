@@ -74,6 +74,11 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
             name: 'Danza y teatro',
             description: 'Encargado de la danza y teatro en la iglesia',
           },
+          {
+            name: 'Encargado de eventos web',
+            description:
+              'Encargado de el streaming de eventos en la aplicación',
+          },
           // Añade más roles según las necesidades de la iglesia
         ],
       });

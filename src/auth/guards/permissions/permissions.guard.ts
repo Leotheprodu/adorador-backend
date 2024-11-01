@@ -49,7 +49,7 @@ export class PermissionsGuard implements CanActivate {
     checkLoginStatusHandle(checkLoginStatus, session);
     // revisar si el usuario es administrador
     // si es un admin, no importa los requisitos va a dejar avanzar al controlador
-    checkAdminHandle(session, checkLoginStatus);
+    checkAdminHandle(session);
     // revisar si el usuario tiene los roles necesarios para acceder al controlador
     checkAppRolesHandle(appRoles, session);
     // revisa si el usuario es miembro de la iglesia y si tiene los roles necesarios
