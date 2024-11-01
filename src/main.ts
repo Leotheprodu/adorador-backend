@@ -26,6 +26,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: [corsLink],
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
   });
   app.use(

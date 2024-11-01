@@ -100,11 +100,6 @@ export class EventsController {
     }
   }
 
-  @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
-  })
   @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) id: number,

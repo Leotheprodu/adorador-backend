@@ -121,10 +121,13 @@ export class EventsService {
       transpose,
     }));
 
-    return this.prisma.songsEvents.createMany({
+    const result = await this.prisma.songsEvents.createMany({
       data,
     });
+
+    return result;
   }
+
   async deleteSongsFromEvent(id: number, songs: RemoveSongsToEventDto) {
     const { songIds } = songs;
     return this.prisma.songsEvents.deleteMany({
