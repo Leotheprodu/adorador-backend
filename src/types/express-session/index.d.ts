@@ -5,6 +5,7 @@ declare module 'express-session' {
     userId: number;
     isLoggedIn: boolean;
     roles: number[];
+    name: string;
 
     memberships: {
       id: number;

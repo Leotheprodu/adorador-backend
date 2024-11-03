@@ -69,6 +69,7 @@ export class AuthController {
       if (!user)
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       session.userId = user.id;
+      session.name = user.name;
       session.isLoggedIn = true;
       session.roles = userRoles;
       session.memberships = userMemberships;

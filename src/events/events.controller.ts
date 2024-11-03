@@ -14,6 +14,7 @@ import {
   Query,
   ParseBoolPipe,
   Session,
+  Req,
 } from '@nestjs/common';
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';

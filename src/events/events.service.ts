@@ -10,7 +10,10 @@ import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 
 @Injectable()
 export class EventsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    /*  private eventsGateway: EventsGateway, // Inject EventsGateway */
+  ) {}
 
   async create(
     createEventDto: CreateEventDto,
@@ -216,9 +219,23 @@ export class EventsService {
     });
   }
   async changeEventManager(id: number, eventManagerId: number) {
-    return this.prisma.events.update({
+    const result = await this.prisma.events.update({
       where: { id },
       data: { eventManagerId },
+    });
+
+    // Clear messages from EventsGateway
+    /* this.eventsGateway.clearMessagesForEvent(id);
+     */
+    return result;
+  }
+
+  async getEventManagerByEventId(id: number) {
+    return this.prisma.events.findUnique({
+      where: { id },
+      select: {
+        eventManagerId: true,
+      },
     });
   }
 }

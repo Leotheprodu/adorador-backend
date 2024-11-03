@@ -52,24 +52,4 @@ export class AuthService {
       throw new HttpException('Invalid Password', HttpStatus.UNAUTHORIZED);
     return user;
   }
-
-  /*   async verifyEmail(token: string) {
-    try {
-      const tempToken = await this.prisma.temporal_token_pool.findUnique({
-        where: { token },
-      });
-      if (!tempToken) {
-        throw new Error('Invalid token');
-      } else {
-        const data = await this.prisma.users.update({
-          where: { email: tempToken.userEmail },
-          data: { status: 'active' },
-        });
-        await this.prisma.temporal_token_pool.delete({ where: { token } });
-        return { status: 'active', email: data.email, id: data.id };
-      }
-    } catch (error) {
-      throw new Error('Error verifying email');
-    }
-  } */
 }
