@@ -4,13 +4,11 @@ import {
   SubscribeMessage,
   MessageBody,
   ConnectedSocket,
-  OnGatewayConnection,
-  OnGatewayInit,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { EventsService } from './events.service';
 import { frontEndUrl } from 'config/constants';
-import { sessionMiddleware } from 'src/auth/middlewares/session.middleware';
+import { forwardRef, Inject } from '@nestjs/common';
 
 @WebSocketGateway({
   cors: {
@@ -19,7 +17,7 @@ import { sessionMiddleware } from 'src/auth/middlewares/session.middleware';
     credentials: true,
   },
 })
-export class EventsGateway implements OnGatewayConnection, OnGatewayInit {
+export class EventsGateway /* implements OnGatewayConnection, OnGatewayInit */ {
   @WebSocketServer()
   server: Server;
 
@@ -28,14 +26,17 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayInit {
   private messageExpiryDuration: number = 3600000; // 1 hora en milisegundos
   private eventManagers: Map<string, number> = new Map(); // Map para almacenar administradores de eventos
 
-  constructor(private readonly eventsService: EventsService) {
+  constructor(
+    @Inject(forwardRef(() => EventsService))
+    private readonly eventsService: EventsService,
+  ) {
     // Configurar un intervalo para verificar y eliminar mensajes expirados
     setInterval(() => this.cleanUpExpiredMessages(), 60000); // Verificar cada minuto
-    setInterval(() => this.logMessageCount(), 60000 * 10); // Imprimir cada 10 minutos
+    setInterval(() => this.cleanUpEventManagers(), 60000 * 60); // Limpiar cada hora
   }
-  afterInit(server: Server) {
+  /*   afterInit(server: Server) {
     server.engine.use(sessionMiddleware);
-  }
+  } */
 
   handleConnection(client: Socket) {
     // Enviar los últimos mensajes de todos los eventos al cliente recién conectado
@@ -74,6 +75,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayInit {
     );
   }
 
+  getLastMessage(eventName: string) {
+    return this.lastMessages.get(eventName);
+  }
+
   private cleanUpExpiredMessages() {
     const currentTime = Date.now();
     this.messageExpiryTimes.forEach((expiryTime, eventName) => {
@@ -96,17 +101,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayInit {
     this.eventManagers.clear();
   }
 
-  clearMessagesForEvent(eventId: number) {
-    const eventSelectedSongKey = `eventSelectedSong-${eventId}`;
-    const lyricSelectedKey = `lyricSelected-${eventId}`;
-
-    this.lastMessages.delete(eventSelectedSongKey);
-    this.messageExpiryTimes.delete(eventSelectedSongKey);
-
-    this.lastMessages.delete(lyricSelectedKey);
-    this.messageExpiryTimes.delete(lyricSelectedKey);
-  }
-  private logMessageCount() {
-    console.log(`Number of messages in memory: ${this.lastMessages.size}`);
+  cleanUpEventManagersForEvent(eventId: number) {
+    this.eventManagers.delete(eventId.toString());
   }
 }

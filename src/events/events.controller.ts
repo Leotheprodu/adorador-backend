@@ -30,12 +30,16 @@ import { catchHandle } from 'src/chore/utils/catchHandle';
 import { Response } from 'express';
 import { AddSongsToEventDto } from './dto/add-songs-to-event.dto';
 import { SessionData } from 'express-session';
+import { EventsGateway } from './events.gateway';
 
 @Controller('churches/:churchId/events')
 @ApiTags('Events of Church')
 @UseGuards(PermissionsGuard)
 export class EventsController {
-  constructor(private readonly eventsService: EventsService) {}
+  constructor(
+    private readonly eventsService: EventsService,
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   @ApiOperation({ summary: 'Create Service' })
   @CheckLoginStatus('loggedIn')
@@ -243,13 +247,26 @@ export class EventsController {
         id,
         session.userId,
       );
-      if (!event) {
-        throw new HttpException(
-          'Event manager not changed',
-          HttpStatus.BAD_REQUEST,
-        );
+      const userName = session.name;
+      const eventName = `eventSelectedSong-${id}`;
+
+      if (session.userId === event.eventManagerId) {
+        const lastMessage = this.eventsGateway.getLastMessage(eventName);
+        this.eventsGateway.server.emit(eventName, {
+          message: lastMessage,
+          eventAdmin: userName,
+        });
+        res
+          .status(HttpStatus.OK)
+          .send({ message: 'Event manager changed', eventManager: userName });
+      } else {
+        if (!event) {
+          throw new HttpException(
+            'Event manager not changed',
+            HttpStatus.BAD_REQUEST,
+          );
+        }
       }
-      res.status(HttpStatus.OK).send({ message: 'Event manager changed' });
     } catch (e) {
       catchHandle(e);
     }

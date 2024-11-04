@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
 import { PrismaService } from 'src/prisma.service';
@@ -7,12 +7,14 @@ import {
   RemoveSongsToEventDto,
 } from './dto/add-songs-to-event.dto';
 import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
+import { EventsGateway } from './events.gateway';
 
 @Injectable()
 export class EventsService {
   constructor(
     private prisma: PrismaService,
-    /*  private eventsGateway: EventsGateway, // Inject EventsGateway */
+    @Inject(forwardRef(() => EventsGateway))
+    private eventsGateway: EventsGateway, // Inject EventsGateway
   ) {}
 
   async create(
@@ -222,11 +224,15 @@ export class EventsService {
     const result = await this.prisma.events.update({
       where: { id },
       data: { eventManagerId },
+      select: {
+        id: true,
+        eventManagerId: true,
+      },
     });
 
     // Clear messages from EventsGateway
-    /* this.eventsGateway.clearMessagesForEvent(id);
-     */
+    this.eventsGateway.cleanUpEventManagersForEvent(id);
+
     return result;
   }
 
