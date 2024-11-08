@@ -28,9 +28,13 @@ import {
 import { churchRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { Response } from 'express';
-import { AddSongsToEventDto } from './dto/add-songs-to-event.dto';
+import {
+  AddSongsToEventDto,
+  RemoveSongsToEventDto,
+} from './dto/add-songs-to-event.dto';
 import { SessionData } from 'express-session';
 import { EventsGateway } from './events.gateway';
+import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 
 @Controller('churches/:churchId/events')
 @ApiTags('Events of Church')
@@ -203,6 +207,59 @@ export class EventsController {
       catchHandle(e);
     }
   }
+  @Delete(':id/songs')
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch({
+    checkBy: 'paramChurchId',
+    key: 'churchId',
+    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
+  })
+  async deleteSongsToEvent(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+    @Param('churchId', ParseIntPipe) churchId: number,
+    @Body() songs: RemoveSongsToEventDto,
+  ) {
+    try {
+      console.log(songs);
+      const event = await this.eventsService.deleteSongsFromEvent(id, songs);
+      console.log(event);
+      res.status(HttpStatus.OK).send({ message: 'Songs removed from event' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Patch(':id/songs')
+  @CheckLoginStatus('loggedIn')
+  @CheckChurch({
+    checkBy: 'paramChurchId',
+    key: 'churchId',
+    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
+  })
+  async updateEventSongs(
+    @Param('id', ParseIntPipe) id: number,
+    @Res() res: Response,
+    @Param('churchId', ParseIntPipe) churchId: number,
+    @Body() updateSongsEventDto: UpdateSongsEventDto,
+  ) {
+    try {
+      const event = await this.eventsService.updateSongsEvent(
+        id,
+        updateSongsEventDto,
+      );
+      /* if (!event) {
+        throw new HttpException(
+          'Songs not updated to event',
+          HttpStatus.BAD_REQUEST,
+        );
+      } */
+      res.status(HttpStatus.OK).send({ message: 'Songs updated' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
   @Get(':id/songs')
   @CheckLoginStatus('loggedIn')
   @CheckChurch({
