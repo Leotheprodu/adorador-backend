@@ -11,6 +11,7 @@ export const checkUserIdParamHandle = (
   if (checkUserIdParam) {
     const userIdParam = request.params[checkUserIdParam]; // Valor dinámico o por defecto 'userId'
     if (userIdParam && session.userId !== parseInt(userIdParam, 10)) {
+      console.log('User ID does not match.');
       throw new ForbiddenException('User ID does not match.');
     }
   }

@@ -8,6 +8,7 @@ export const checkAppRolesHandle = (
 ) => {
   if (appRoles) {
     if (!appRoles.some((role) => session.roles.includes(role))) {
+      console.log('User does not have the required role.');
       throw new ForbiddenException('User does not have the required role.');
     }
   }

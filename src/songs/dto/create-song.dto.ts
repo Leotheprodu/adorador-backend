@@ -9,6 +9,33 @@ enum SongType {
   WORSHIP = 'worship',
   PRAISE = 'praise',
 }
+
+enum Key {
+  C = 'C',
+  Cm = 'Cm',
+  'C#' = 'C#',
+  'C#m' = 'C#m',
+  D = 'D',
+  Dm = 'Dm',
+  'D#' = 'D#',
+  'D#m' = 'D#m',
+  E = 'E',
+  Em = 'Em',
+  F = 'F',
+  Fm = 'Fm',
+  'F#' = 'F#',
+  'F#m' = 'F#m',
+  G = 'G',
+  Gm = 'Gm',
+  'G#' = 'G#',
+  'G#m' = 'G#m',
+  A = 'A',
+  Am = 'Am',
+  'A#' = 'A#',
+  'A#m' = 'A#m',
+  B = 'B',
+  Bm = 'Bm',
+}
 export class CreateSongDto {
   @IsString()
   @IsNotEmpty()
@@ -25,11 +52,10 @@ export class CreateSongDto {
   @IsOptional()
   youtubeLink: string;
 
-  @IsString()
-  @IsOptional()
-  key: string;
+  @IsEnum(Key)
+  key: Key;
 
-  @IsString()
+  @IsNumber()
   @IsOptional()
-  tempo: string;
+  tempo: number;
 }

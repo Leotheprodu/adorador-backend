@@ -18,6 +18,7 @@ export const checkChurchHandle = async (
       (membership) => membership.church.id,
     );
     if (!userReqMemberships || userReqMemberships.length === 0) {
+      console.log('User does not have memberships.');
       throw new ForbiddenException('User does not have memberships.');
     }
 
@@ -28,6 +29,7 @@ export const checkChurchHandle = async (
       );
       const churchId = membership.churchId;
       if (!userReqChurchIds.includes(churchId)) {
+        console.log('Church does not belong to the user authenticated.');
         throw new ForbiddenException(
           'Church does not belong to the user authenticated.',
         );
@@ -43,6 +45,7 @@ export const checkChurchHandle = async (
         if (churchRolesBypass.some((role) => userReqRoleIds.includes(role))) {
           return true;
         } else if (churchRoleStrict) {
+          console.log('User does not have the required role in the church.');
           throw new ForbiddenException(
             'User does not have the required role in the church.',
           );
@@ -54,6 +57,7 @@ export const checkChurchHandle = async (
       const churchId =
         checkBy === 'bodyChurchId' ? request.body[key] : request.params[key]; // Obtener el churchId desde el cuerpo de la petición
       if (!userReqChurchIds.includes(parseInt(churchId, 10))) {
+        console.log('Church does not belong to the user authenticated.');
         throw new ForbiddenException(
           'Church does not belong to the user authenticated.',
         );
@@ -69,6 +73,7 @@ export const checkChurchHandle = async (
         if (churchRolesBypass.some((role) => userReqRoleIds.includes(role))) {
           return true;
         } else if (churchRoleStrict) {
+          console.log('User does not have the required role in the church.');
           throw new ForbiddenException(
             'User does not have the required role in the church.',
           );
