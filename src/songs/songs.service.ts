@@ -20,6 +20,11 @@ export class SongsService {
         updatedAt: true,
         churchId: true,
       },
+      include: {
+        _count: {
+          select: { events: true, lyrics: true },
+        },
+      },
     });
   }
 
