@@ -30,6 +30,6 @@ async function bootstrap() {
     credentials: true,
   });
   app.set('trust proxy', 1);
-  await app.listen(process.env.PORT || 3000, '192.168.50.101');
+  await app.listen(process.env.PORT || 3000, '192.168.50.100');
 }
 bootstrap();

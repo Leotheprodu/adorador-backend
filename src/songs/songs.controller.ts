@@ -59,10 +59,6 @@ export class SongsController {
   }
 
   @Get()
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
-  })
   async findAll(
     @Res() res: Response,
     @Param('churchId', ParseIntPipe) churchId: number,
