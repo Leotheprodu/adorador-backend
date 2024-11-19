@@ -12,6 +12,8 @@ import {
   Session,
   HttpStatus,
   HttpException,
+  UseInterceptors,
+  UploadedFile,
 } from '@nestjs/common';
 import { SongsLyricsService } from './songs-lyrics.service';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
@@ -27,6 +29,7 @@ import {
   CheckChurch,
   CheckLoginStatus,
 } from 'src/auth/decorators/permissions.decorators';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('churches/:churchId/songs/:songId/lyrics')
 @ApiTags('Songs Lyrics')
@@ -42,6 +45,33 @@ export class SongsLyricsController {
     private readonly songsLyricsService: SongsLyricsService,
     private readonly songsService: SongsService,
   ) {}
+
+  @Post('upload')
+  @UseInterceptors(FileInterceptor('file'))
+  async uploadLyricsWithChordsByFile(
+    @UploadedFile() file: Express.Multer.File,
+    @Param('churchId', ParseIntPipe) churchId: number,
+    @Res() res: Response,
+    @Param('songId', ParseIntPipe) songId: number,
+  ) {
+    try {
+      console.log('file', file);
+      if (!file || !file.buffer) {
+        throw new HttpException(
+          'File not uploaded or buffer is undefined',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      await this.songsLyricsService.parseAndSaveLyricsWithChords(
+        file.buffer,
+        songId,
+      );
+      res.status(HttpStatus.OK).send({ message: 'Lyrics uploaded' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
 
   @Post()
   async create(
