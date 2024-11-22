@@ -166,7 +166,6 @@ model Songs_Chords {
   rootNote      String
   chordQuality String? @default("")
   slashChord String? @default("")
-  slashQuality String? @default("")
   position  Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

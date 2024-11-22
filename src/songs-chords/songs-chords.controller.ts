@@ -23,7 +23,6 @@ import {
   CheckChurch,
   CheckLoginStatus,
 } from 'src/auth/decorators/permissions.decorators';
-import { SessionData } from 'express-session';
 import { Response } from 'express';
 import { churchRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';

@@ -131,15 +131,13 @@ export class SongsLyricsService {
           );
 
           if (match) {
-            const [_, rootNote, chordQuality, __, slashRoot, slashQuality] =
-              match;
+            const [_, rootNote, chordQuality, __, slashRoot] = match;
 
             // Validar valores contra enums
             if (
               this.rootNotes.includes(rootNote) &&
               (!chordQuality || this.chordQualities.includes(chordQuality)) &&
-              (!slashRoot || this.rootNotes.includes(slashRoot)) &&
-              (!slashQuality || this.chordQualities.includes(slashQuality))
+              (!slashRoot || this.rootNotes.includes(slashRoot))
             ) {
               await this.prisma.songs_Chords.create({
                 data: {
@@ -147,7 +145,6 @@ export class SongsLyricsService {
                   rootNote,
                   chordQuality: chordQuality || '',
                   slashChord: slashRoot || '',
-                  slashQuality: slashQuality || '',
                   position: index + 1,
                 },
               });

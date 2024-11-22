@@ -59,10 +59,6 @@ export class CreateSongsChordDto {
   @IsOptional()
   slashChord: rootNotes;
 
-  @IsEnum(chordQualities)
-  @IsOptional()
-  slashQuality: chordQualities;
-
   @IsEnum(positionValues)
   @IsNotEmpty()
   position: positionValues;
