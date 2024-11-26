@@ -160,7 +160,11 @@ export class SongsLyricsController {
     try {
       const lyrics = await this.songsLyricsService.findAll(songId);
       const lyricsPosition = lyrics.map((lyric) => lyric.position);
-      if (lyricsPosition.includes(updateSongsLyricDto.position)) {
+      const lyricData = lyrics.find((lyric) => lyric.id === id);
+      if (
+        lyricsPosition.includes(updateSongsLyricDto.position) &&
+        lyricData.id !== id
+      ) {
         throw new HttpException(
           'Position already taken',
           HttpStatus.BAD_REQUEST,
@@ -177,7 +181,32 @@ export class SongsLyricsController {
           HttpStatus.INTERNAL_SERVER_ERROR,
         );
       }
-      res.status(HttpStatus.OK).send(lyric);
+      res.status(HttpStatus.OK).send({ message: 'Lyric updated' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Patch()
+  async updateArrayOfLyrics(
+    @Session() session: SessionData,
+    @Res() res: Response,
+    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('songId', ParseIntPipe) songId: number,
+    @Body() updateLyricsDto: UpdateSongsLyricDto[],
+  ) {
+    try {
+      const updatedLyrics = await this.songsLyricsService.updateArrayOfLyrics(
+        songId,
+        updateLyricsDto,
+      );
+      if (!updatedLyrics) {
+        throw new HttpException(
+          'Lyrics not updated',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+      res.status(HttpStatus.OK).send({ message: 'Lyrics updated' });
     } catch (e) {
       catchHandle(e);
     }

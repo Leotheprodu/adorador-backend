@@ -93,7 +93,26 @@ export class SongsLyricsService {
     });
   }
 
+  async updateArrayOfLyrics(songId: number, lyrics: UpdateSongsLyricDto[]) {
+    const updatePromises = lyrics.map((lyric) =>
+      this.prisma.songs_lyrics.update({
+        where: { id: lyric.id, songId },
+        data: { position: lyric.position },
+      }),
+    );
+    return await Promise.all(updatePromises);
+  }
+
   async remove(id: number, songId: number) {
+    const chords = await this.prisma.songs_Chords.findMany({
+      where: { lyricId: id },
+    });
+    if (chords.length > 0) {
+      console.log(' Deleting chords for lyric', id);
+      await this.prisma.songs_Chords.deleteMany({
+        where: { lyricId: id },
+      });
+    }
     return await this.prisma.songs_lyrics.delete({
       where: { id, songId },
     });
