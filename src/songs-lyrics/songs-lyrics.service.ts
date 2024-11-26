@@ -108,7 +108,6 @@ export class SongsLyricsService {
       where: { lyricId: id },
     });
     if (chords.length > 0) {
-      console.log(' Deleting chords for lyric', id);
       await this.prisma.songs_Chords.deleteMany({
         where: { lyricId: id },
       });
