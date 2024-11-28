@@ -30,6 +30,8 @@ async function bootstrap() {
     credentials: true,
   });
   app.set('trust proxy', 1);
-  await app.listen(process.env.PORT || 3000, '192.168.50.100');
+  const isProduction = process.env.NODE_ENV === 'production';
+  const host = isProduction ? '0.0.0.0' : process.env.IPDEV;
+  await app.listen(process.env.PORT || 3000, host);
 }
 bootstrap();
