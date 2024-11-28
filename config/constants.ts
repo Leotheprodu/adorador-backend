@@ -78,4 +78,4 @@ export const churchRoles = {
 };
 const otherCorsUrls = process.env.OTHER_CORS_URLS;
 
-export const corsLink = `${frontEndUrl}${otherCorsUrls ? otherCorsUrls : ''}`;
+export const corsLink = [frontEndUrl, otherCorsUrls];
