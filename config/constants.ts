@@ -76,5 +76,6 @@ export const churchRoles = {
     name: 'Encargado de eventos web',
   },
 };
+const otherCorsUrls = process.env.OTHER_CORS_URLS;
 
-export const corsLink = process.env.FRONTEND_URL;
+export const corsLink = `${frontEndUrl}${otherCorsUrls ? otherCorsUrls : ''}`;
