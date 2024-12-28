@@ -84,6 +84,22 @@ export class AuthController {
     }
   }
 
+  @Get('/check-login-status')
+  @CheckLoginStatus('loggedIn')
+  async checkLoginStatus(
+    @Res() res: Response,
+    @Session() session: SessionData,
+  ) {
+    try {
+      res.status(HttpStatus.OK).send({
+        id: session.userId,
+        isLoggedIn: session.isLoggedIn,
+      });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
   @ApiLogout()
   @Get('/logout')
   @CheckLoginStatus('loggedIn')
