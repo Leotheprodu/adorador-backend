@@ -58,11 +58,11 @@ export class ChurchesService {
           },
         },
         events: {
-          where: {
+          /* where: {
             date: {
               gt: currentDate,
             },
-          },
+          }, */
           orderBy: {
             date: 'asc',
           },
