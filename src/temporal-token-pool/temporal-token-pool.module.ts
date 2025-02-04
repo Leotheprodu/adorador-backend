@@ -4,5 +4,6 @@ import { PrismaService } from 'src/prisma.service';
 
 @Module({
   providers: [TemporalTokenPoolService, PrismaService],
+  exports: [TemporalTokenPoolService],
 })
 export class TemporalTokenPoolModule {}

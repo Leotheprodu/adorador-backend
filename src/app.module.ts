@@ -11,7 +11,7 @@ import { ChurchMemberRolesModule } from './church-member-roles/church-member-rol
 import { SongsLyricsModule } from './songs-lyrics/songs-lyrics.module';
 import { SongsChordsModule } from './songs-chords/songs-chords.module';
 import { TemporalTokenPoolModule } from './temporal-token-pool/temporal-token-pool.module';
-
+import { ScheduleModule } from '@nestjs/schedule';
 @Module({
   imports: [
     UsersModule,
@@ -26,6 +26,7 @@ import { TemporalTokenPoolModule } from './temporal-token-pool/temporal-token-po
     SongsLyricsModule,
     SongsChordsModule,
     TemporalTokenPoolModule,
+    ScheduleModule.forRoot(),
   ],
   controllers: [],
   providers: [],

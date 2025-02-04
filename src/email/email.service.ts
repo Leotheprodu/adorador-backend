@@ -8,11 +8,13 @@ import {
   tokenCampainEmailService,
 } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
+import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
 @Injectable()
 export class EmailService {
   constructor(
     private readonly mailService: MailerService,
     private prisma: PrismaService,
+    private readonly tempTokenPoolService: TemporalTokenPoolService,
   ) {}
   async sendEmail({
     email,
@@ -42,13 +44,11 @@ export class EmailService {
   async sendEmailVerification(email: string) {
     try {
       const token = crypto.randomBytes(32).toString('hex');
-      const tempToken = await this.prisma.temporal_token_pool.create({
-        data: {
-          token,
-          userEmail: email,
-          type: 'email_verification',
-        },
-      });
+      const tempToken = await this.tempTokenPoolService.createToken(
+        token,
+        email,
+        'verify_email',
+      );
       if (!tempToken) {
         throw new Error('Error creating token');
       } else {
@@ -69,13 +69,11 @@ export class EmailService {
   async sendForgotPasswordEmail(email: string) {
     try {
       const token = crypto.randomBytes(32).toString('hex');
-      const tempToken = await this.prisma.temporal_token_pool.create({
-        data: {
-          token,
-          userEmail: email,
-          type: 'forgot_password',
-        },
-      });
+      const tempToken = await this.tempTokenPoolService.createToken(
+        token,
+        email,
+        'forgot_password',
+      );
       if (!tempToken) {
         throw new Error('Error creating token');
       }
