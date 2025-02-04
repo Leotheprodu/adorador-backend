@@ -27,6 +27,8 @@ import { catchHandle } from 'src/chore/utils/catchHandle';
 import { PermissionsGuard } from './guards/permissions/permissions.guard';
 import { CheckLoginStatus } from './decorators/permissions.decorators';
 import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
+import { ForgotPasswordDTO } from './dto/forgot-password.dto';
+import { NewPaswordDTO } from './dto/new-password.dto';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -139,6 +141,46 @@ export class AuthController {
       await this.usersService.addRole(user.id, userRoles.user.id);
       await this.emailService.subscribeToNewsLetter(user.email);
       res.status(HttpStatus.OK).send({ status: 'active' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Post('/forgot-password')
+  async forgotPassword(@Res() res: Response, @Body() body: ForgotPasswordDTO) {
+    try {
+      const user = await this.usersService.findByEmail(body.email);
+      if (!user) {
+        throw new HttpException('User not found', HttpStatus.NOT_FOUND);
+      }
+      await this.emailService.sendForgotPasswordEmail(user.email);
+      res.status(HttpStatus.ACCEPTED).send({ status: 'success' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+  @Post('/new-password')
+  async newPassword(@Res() res: Response, @Body() body: NewPaswordDTO) {
+    try {
+      const tempTokenInfo = await this.temporalTokenPoolService.findToken(
+        body.token,
+      );
+      if (!tempTokenInfo) {
+        throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
+      }
+      await this.usersService.updatePassword(
+        tempTokenInfo.userEmail,
+        body.password,
+      );
+      if (!tempTokenInfo) {
+        throw new HttpException(
+          'Error updating password',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      } else {
+        await this.temporalTokenPoolService.deleteToken(body.token);
+      }
+      res.status(HttpStatus.ACCEPTED).send({ status: 'success' });
     } catch (e) {
       catchHandle(e);
     }

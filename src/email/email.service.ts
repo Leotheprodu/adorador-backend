@@ -66,6 +66,32 @@ export class EmailService {
       catchHandle(e);
     }
   }
+  async sendForgotPasswordEmail(email: string) {
+    try {
+      const token = crypto.randomBytes(32).toString('hex');
+      const tempToken = await this.prisma.temporal_token_pool.create({
+        data: {
+          token,
+          userEmail: email,
+          type: 'forgot_password',
+        },
+      });
+      if (!tempToken) {
+        throw new Error('Error creating token');
+      }
+      this.sendEmail({
+        email,
+        subject: 'Restablecer contraseña',
+        from: `"Adorador" <${process.env.EMAIL_USERNAME}>`,
+        template: 'forgot-password',
+        context: {
+          link: `${frontEndUrl}/auth/reset-password?token=${token}`,
+        },
+      });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
 
   async subscribeToNewsLetter(email: string) {
     try {

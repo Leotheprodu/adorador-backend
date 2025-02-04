@@ -120,4 +120,23 @@ export class UsersService {
       data: { status: 'active' },
     });
   }
+
+  async findByEmail(email: string) {
+    return await this.prisma.users.findUnique({
+      where: {
+        email,
+      },
+      select: {
+        id: true,
+        email: true,
+      },
+    });
+  }
+  async updatePassword(email: string, password: string) {
+    const newPassword = await passwordEncrypt(password);
+    return await this.prisma.users.update({
+      where: { email },
+      data: { password: newPassword },
+    });
+  }
 }
