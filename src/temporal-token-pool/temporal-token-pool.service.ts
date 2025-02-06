@@ -1,6 +1,7 @@
 import { HttpException, Injectable, OnModuleInit } from '@nestjs/common';
 import { PrismaService } from 'src/prisma.service';
 import { Cron } from '@nestjs/schedule';
+import * as crypto from 'crypto';
 
 interface TokenInfo {
   token: string;
@@ -19,7 +20,7 @@ export class TemporalTokenPoolService implements OnModuleInit {
     this.cleanUpTokens();
   }
 
-  @Cron('0 0 * * * *') // Ejecuta cada 24 horas
+  @Cron('0 0 * * * *', { name: crypto.randomUUID() }) // Ejecuta cada 24 horas
   async cleanUpTokens() {
     const now = new Date();
     const tokensToDelete: TokenInfo[] = [];
