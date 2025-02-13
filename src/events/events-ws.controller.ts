@@ -66,7 +66,7 @@ export class EventsGatewayController {
       const eventManagerId = await this.eventsGateway.getEventManagerId(
         body.id,
       );
-      if (session.userId === eventManagerId) {
+      if (session.userId === eventManagerId || checkAdminHandle(session)) {
         this.eventsGateway.storeMessage(eventName, {
           message: body.message,
           eventAdmin: session.name,
