@@ -1,4 +1,9 @@
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { SessionData } from 'express-session';
 import {
@@ -44,18 +49,53 @@ export class PermissionsGuard implements CanActivate {
       CHECK_CHURCH,
       context.getHandler(),
     );
-    // revisar si el usuario está autenticado.
-    // depende de lo que se necesite en cada controlador se deja pasar o no
-    checkLoginStatusHandle(checkLoginStatus, session);
-    // revisar si el usuario es administrador
-    // si es un admin, no importa los requisitos va a dejar avanzar al controlador
-    checkAdminHandle(session);
-    // revisar si el usuario tiene los roles necesarios para acceder al controlador
-    checkAppRolesHandle(appRoles, session);
-    // revisa si el usuario es miembro de la iglesia y si tiene los roles necesarios
-    checkChurchHandle(checkChurch, session, request, this.membershipsService);
-    // revisa si el usuario autenticado es el mismo que se realiza la petición
-    checkUserIdParamHandle(checkUserIdParam, session, request);
+    try {
+      checkLoginStatusHandle(checkLoginStatus, session);
+    } catch (error) {
+      console.log('User is not authenticated.');
+      throw new ForbiddenException('User is not authenticated.');
+    }
+
+    // Revisar si el usuario es administrador
+    try {
+      checkAdminHandle(session);
+    } catch (error) {
+      console.log('User is not an admin.');
+      throw new ForbiddenException('User is not an admin.');
+    }
+
+    // Revisar si el usuario tiene los roles necesarios para acceder al controlador
+    try {
+      checkAppRolesHandle(appRoles, session);
+    } catch (error) {
+      console.log('User does not have the required roles.');
+      throw new ForbiddenException('User does not have the required roles.');
+    }
+
+    // Revisar si el usuario es miembro de la iglesia y si tiene los roles necesarios
+    try {
+      await checkChurchHandle(
+        checkChurch,
+        session,
+        request,
+        this.membershipsService,
+      );
+    } catch (error) {
+      console.log(
+        'User does not have the required church memberships or roles.',
+      );
+      throw new ForbiddenException(
+        'User does not have the required church memberships or roles.',
+      );
+    }
+
+    // Revisar si el usuario autenticado es el mismo que se realiza la petición
+    try {
+      checkUserIdParamHandle(checkUserIdParam, session, request);
+    } catch (error) {
+      console.log('User ID does not match.');
+      throw new ForbiddenException('User ID does not match.');
+    }
 
     return true;
   }
