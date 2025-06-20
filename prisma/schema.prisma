@@ -133,8 +133,8 @@ model Events {
   id        Int      @id @default(autoincrement())
   title     String
   date      DateTime
-  bandId  Int?
-  band    Bands? @relation(fields: [bandId], references: [id])
+  bandId  Int
+  band    Bands @relation(fields: [bandId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   songs     SongsEvents[]
@@ -144,8 +144,8 @@ model Songs {
   id        Int      @id @default(autoincrement())
   title     String   @unique
   artist    String?
-  bandId  Int?
-  band    Bands? @relation(fields: [bandId], references: [id])
+  bandId  Int
+  band    Bands @relation(fields: [bandId], references: [id])
   songType      String  @default("worship")
   youtubeLink String?
   key       String?
