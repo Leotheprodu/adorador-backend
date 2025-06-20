@@ -17,22 +17,18 @@ export class EventsService {
     private eventsGateway: EventsGateway, // Inject EventsGateway
   ) {}
 
-  async create(
-    createEventDto: CreateEventDto,
-    churchId: number,
-    eventManagerId: number,
-  ) {
+  async create(createEventDto: CreateEventDto, bandId: number) {
     return this.prisma.events.create({
-      data: { ...createEventDto, churchId, eventManagerId },
+      data: { ...createEventDto, bandId },
     });
   }
 
-  async findAll(churchId: number, includeAllDates: boolean) {
+  async findAll(bandId: number, includeAllDates: boolean) {
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0); // Establece la hora en 00:00:00 para que incluya los eventos de hoy
     return this.prisma.events.findMany({
       where: {
-        churchId,
+        bandId,
         ...(includeAllDates ? {} : { date: { gt: currentDate } }), // Aplica el filtro de fecha solo si includeAllDates es false
       },
       orderBy: {
@@ -41,7 +37,7 @@ export class EventsService {
       omit: {
         createdAt: true,
         updatedAt: true,
-        churchId: true,
+        bandId: true,
       },
       include: {
         _count: {
@@ -53,15 +49,14 @@ export class EventsService {
     });
   }
 
-  async findOne(id: number, churchId: number) {
+  async findOne(id: number, bandId: number) {
     return this.prisma.events.findUnique({
-      where: { id, churchId },
+      where: { id, bandId },
       select: {
         id: true,
         title: true,
         date: true,
-        eventManagerId: true,
-
+        bandId: true,
         songs: {
           select: {
             transpose: true,
@@ -103,16 +98,16 @@ export class EventsService {
     });
   }
 
-  async update(id: number, updateEventDto: UpdateEventDto, churchId: number) {
+  async update(id: number, updateEventDto: UpdateEventDto, bandId: number) {
     return this.prisma.events.update({
-      where: { id, churchId },
+      where: { id, bandId },
       data: updateEventDto,
     });
   }
 
-  async remove(id: number, churchId: number) {
+  async remove(id: number, bandId: number) {
     return this.prisma.events.delete({
-      where: { id, churchId },
+      where: { id, bandId },
     });
   }
 
@@ -169,9 +164,9 @@ export class EventsService {
     await Promise.all(updatePromises);
   }
 
-  async getEventSongs(id: number, churchId: number) {
+  async getEventSongs(id: number, bandId: number) {
     return this.prisma.events.findUnique({
-      where: { id, churchId },
+      where: { id, bandId },
       select: {
         id: true,
         title: true,
@@ -220,28 +215,63 @@ export class EventsService {
       },
     });
   }
-  async changeEventManager(id: number, eventManagerId: number) {
-    const result = await this.prisma.events.update({
-      where: { id },
-      data: { eventManagerId },
+  //NOTE revisar esta funcion, voy por aqui
+  async changeEventManager(bandId: number, userId: number, id: number) {
+    const eventManager = await this.prisma.membersofBands.findFirst({
+      where: { bandId, isEventManager: true },
       select: {
         id: true,
-        eventManagerId: true,
       },
     });
+    if (eventManager) {
+      await this.prisma.membersofBands.update({
+        where: { id: eventManager.id },
+        data: { isEventManager: false },
+      });
 
-    // Clear messages from EventsGateway
-    this.eventsGateway.cleanUpEventManagersForEvent(id);
-
-    return result;
+      const newEventManager = await this.prisma.membersofBands.findFirst({
+        where: { bandId, userId },
+        select: {
+          id: true,
+        },
+      });
+      return await this.prisma.membersofBands.update({
+        where: { id: newEventManager.id },
+        data: { isEventManager: true },
+      });
+    } else {
+      const newEventManager = await this.prisma.membersofBands.findFirst({
+        where: { bandId, userId },
+        select: {
+          id: true,
+        },
+      });
+      return await this.prisma.membersofBands.update({
+        where: { id: newEventManager.id },
+        data: { isEventManager: true },
+      });
+    }
   }
 
   async getEventManagerByEventId(id: number) {
-    return this.prisma.events.findUnique({
+    const event = await this.prisma.events.findUnique({
       where: { id },
       select: {
-        eventManagerId: true,
+        band: {
+          select: {
+            members: {
+              where: { isEventManager: true },
+              select: {
+                userId: true,
+              },
+            },
+          },
+        },
       },
     });
+    if (!event || event.band.members.length === 0) {
+      return null; // No hay un Event Manager asignado
+    }
+    return event.band.members[0].userId;
   }
 }

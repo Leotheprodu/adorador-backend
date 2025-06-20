@@ -51,7 +51,8 @@ export class AuthController {
   ) {
     try {
       const user = await this.authService.login(body);
-      const { password, roles, memberships, ...userData } = user;
+      const { password, roles, memberships, membersofBands, ...userData } =
+        user;
       const userRoles = roles.map((role) => role.id);
 
       const userMemberships = memberships.map((membership) => {
@@ -75,11 +76,13 @@ export class AuthController {
       session.isLoggedIn = true;
       session.roles = userRoles;
       session.memberships = userMemberships;
+      session.membersofBands = membersofBands;
       res.status(HttpStatus.ACCEPTED).send({
         ...userData,
         roles: userRoles,
         isLoggedIn: true,
         memberships: userMemberships,
+        membersofBands: membersofBands,
       });
     } catch (e) {
       catchHandle(e);
