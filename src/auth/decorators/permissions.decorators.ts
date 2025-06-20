@@ -39,3 +39,20 @@ export const CheckChurch = ({
     churchRolesBypass,
     churchRoleStrict,
   });
+
+export const CHECK_USER_MEMBER_OF_BAND = 'checkUserMemberOfBand';
+export type CheckUserMemberOfBandType = {
+  checkBy: 'paramBandId' | 'bodyBandId';
+  key: string;
+  isAdmin?: boolean;
+};
+export const CheckUserMemberOfBand = ({
+  checkBy,
+  key,
+  isAdmin = false,
+}: CheckUserMemberOfBandType) =>
+  SetMetadata(CHECK_USER_MEMBER_OF_BAND, {
+    checkBy,
+    key,
+    isAdmin,
+  });

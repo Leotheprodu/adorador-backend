@@ -42,6 +42,21 @@ export class AuthService {
             id: true,
           },
         },
+        membersofBands: {
+          where: { active: true },
+          select: {
+            id: true,
+            isAdmin: true,
+            isEventManager: true,
+            role: true,
+            band: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
       omit: { createdAt: true, updatedAt: true },
     });

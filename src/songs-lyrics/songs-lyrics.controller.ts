@@ -28,29 +28,28 @@ import { catchHandle } from 'src/chore/utils/catchHandle';
 import {
   CheckChurch,
   CheckLoginStatus,
+  CheckUserMemberOfBand,
 } from 'src/auth/decorators/permissions.decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
 
-@Controller('churches/:churchId/songs/:songId/lyrics')
+@Controller('bands/:bandId/songs/:songId/lyrics')
 @ApiTags('Songs Lyrics')
 @UseGuards(PermissionsGuard)
 @CheckLoginStatus('loggedIn')
-@CheckChurch({
-  checkBy: 'paramChurchId',
-  key: 'churchId',
-  churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-})
 export class SongsLyricsController {
   constructor(
     private readonly songsLyricsService: SongsLyricsService,
     private readonly songsService: SongsService,
   ) {}
-
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async uploadLyricsWithChordsByFile(
     @UploadedFile() file: Express.Multer.File,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
@@ -74,9 +73,13 @@ export class SongsLyricsController {
   }
 
   @Post()
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })  */
   async create(
     @Body() createSongsLyricDto: CreateSongsLyricDto,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
@@ -114,9 +117,13 @@ export class SongsLyricsController {
   }
 
   @Get()
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async findAll(
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
     try {
@@ -131,9 +138,13 @@ export class SongsLyricsController {
   }
 
   @Get(':id')
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async findOne(
     @Param('id', ParseIntPipe) id: number,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {
@@ -149,10 +160,14 @@ export class SongsLyricsController {
   }
 
   @Patch(':id')
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async update(
     @Session() session: SessionData,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('id', ParseIntPipe) id: number,
     @Body() updateSongsLyricDto: UpdateSongsLyricDto,
@@ -188,10 +203,14 @@ export class SongsLyricsController {
   }
 
   @Patch()
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async updateArrayOfLyrics(
     @Session() session: SessionData,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Param('songId', ParseIntPipe) songId: number,
     @Body() updateLyricsDto: UpdateSongsLyricDto[],
   ) {
@@ -213,9 +232,14 @@ export class SongsLyricsController {
   }
 
   @Delete(':id')
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+    isAdmin: true,
+  }) */
   async remove(
     @Param('id', ParseIntPipe) id: number,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
   ) {

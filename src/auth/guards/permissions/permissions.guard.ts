@@ -12,15 +12,18 @@ import {
   CHECK_CHURCH,
   CHECK_LOGIN_STATUS,
   CHECK_USER_ID_KEY,
+  CHECK_USER_MEMBER_OF_BAND,
   CheckChurchType,
   CheckLoginStatusType,
   CheckUserIdType,
+  CheckUserMemberOfBandType,
 } from 'src/auth/decorators/permissions.decorators';
 import { checkAdminHandle } from 'src/auth/utils/checkAdminHandle';
 import { checkAppRolesHandle } from 'src/auth/utils/checkAppRolesHandle';
 import { checkChurchHandle } from 'src/auth/utils/checkChurchHandle';
 import { checkLoginStatusHandle } from 'src/auth/utils/checkLoginStatusHandle';
 import { checkUserIdParamHandle } from 'src/auth/utils/checkUserIdParamHandle';
+import { isMemberOfBand } from 'src/auth/utils/checkUserIsMemberOfBand';
 import { MembershipsService } from 'src/memberships/memberships.service';
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -49,6 +52,12 @@ export class PermissionsGuard implements CanActivate {
       CHECK_CHURCH,
       context.getHandler(),
     );
+    const checkUserIsMemberOfBand =
+      this.reflector.get<CheckUserMemberOfBandType>(
+        CHECK_USER_MEMBER_OF_BAND,
+        context.getHandler(),
+      );
+
     try {
       checkLoginStatusHandle(checkLoginStatus, session);
     } catch (error) {
@@ -96,6 +105,13 @@ export class PermissionsGuard implements CanActivate {
       console.log('User ID does not match.');
       throw new ForbiddenException('User ID does not match.');
     }
+
+    // Revisar si el usuario es miembro de la banda
+    /* try {
+      isMemberOfBand(checkUserIsMemberOfBand, session, request);
+    } catch (error) {
+      throw new ForbiddenException('User is not a member of the band.');
+    } */
 
     return true;
   }

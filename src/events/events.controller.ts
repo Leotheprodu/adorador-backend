@@ -36,8 +36,8 @@ import { SessionData } from 'express-session';
 import { EventsGateway } from './events.gateway';
 import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 
-@Controller('churches/:churchId/events')
-@ApiTags('Events of Church')
+@Controller('bands/:bandId/events')
+@ApiTags('Events of Bands')
 @UseGuards(PermissionsGuard)
 export class EventsController {
   constructor(
@@ -47,28 +47,24 @@ export class EventsController {
 
   @ApiOperation({ summary: 'Create Service' })
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [
       churchRoles.eventWebManager.id,
       churchRoles.worshipLeader.id,
       churchRoles.musician.id,
     ],
-  })
+  }) */
   @Post()
   async create(
     @Body() createEventDto: CreateEventDto,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Session() session: SessionData,
   ) {
     try {
-      const service = await this.eventsService.create(
-        createEventDto,
-        churchId,
-        session.userId,
-      );
+      const service = await this.eventsService.create(createEventDto, bandId);
       if (!service) {
         throw new HttpException(
           'Failed to create service',
@@ -82,13 +78,13 @@ export class EventsController {
   }
   @Get()
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
-  })
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async findAll(
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Query('includeAllDates') includeAllDates: string,
   ) {
     try {
@@ -97,7 +93,7 @@ export class EventsController {
           ? JSON.parse(includeAllDates)
           : false;
       const events = await this.eventsService.findAll(
-        churchId,
+        bandId,
         parsedIncludeAllDates,
       );
       if (!events) {
@@ -113,10 +109,10 @@ export class EventsController {
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
   ) {
     try {
-      const event = await this.eventsService.findOne(id, churchId);
+      const event = await this.eventsService.findOne(id, bandId);
       if (!event) {
         throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
       }
@@ -126,24 +122,20 @@ export class EventsController {
     }
   }
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Body() updateEventDto: UpdateEventDto,
   ) {
     try {
-      const event = await this.eventsService.update(
-        id,
-        updateEventDto,
-        churchId,
-      );
+      const event = await this.eventsService.update(id, updateEventDto, bandId);
       if (!event) {
         throw new HttpException('Event not updated', HttpStatus.BAD_REQUEST);
       }
@@ -153,19 +145,19 @@ export class EventsController {
     }
   }
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   @Delete(':id')
   async remove(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
   ) {
     try {
-      const event = await this.eventsService.remove(id, churchId);
+      const event = await this.eventsService.remove(id, bandId);
       if (!event) {
         throw new HttpException('Event not deleted', HttpStatus.BAD_REQUEST);
       }
@@ -177,15 +169,15 @@ export class EventsController {
 
   @Post(':id/songs')
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   async addSongsToEvent(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Body() addSongsToEventDto: AddSongsToEventDto,
   ) {
     try {
@@ -209,15 +201,15 @@ export class EventsController {
   }
   @Delete(':id/songs')
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   async deleteSongsToEvent(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Body() songs: RemoveSongsToEventDto,
   ) {
     try {
@@ -232,15 +224,15 @@ export class EventsController {
 
   @Patch(':id/songs')
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   async updateEventSongs(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Body() updateSongsEventDto: UpdateSongsEventDto,
   ) {
     try {
@@ -262,17 +254,17 @@ export class EventsController {
 
   @Get(':id/songs')
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
-  })
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async getEventSongs(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
   ) {
     try {
-      const songs = await this.eventsService.getEventSongs(id, churchId);
+      const songs = await this.eventsService.getEventSongs(id, bandId);
       if (!songs) {
         throw new HttpException('No songs found', HttpStatus.NOT_FOUND);
       }
@@ -284,31 +276,38 @@ export class EventsController {
 
   @Get(':id/change-event-manager')
   @CheckLoginStatus('loggedIn')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [
       churchRoles.worshipLeader.id,
       churchRoles.musician.id,
       churchRoles.eventWebManager.id,
     ],
-  })
+  }) */
   async changeEventManager(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Session() session: SessionData,
   ) {
     try {
       const event = await this.eventsService.changeEventManager(
-        id,
+        bandId,
         session.userId,
+        id,
       );
       const userName = session.name;
       const eventName = `eventSelectedSong-${id}`;
 
-      if (session.userId === event.eventManagerId) {
+      if (event) {
         const lastMessage = this.eventsGateway.getLastMessage(eventName);
+        // Optionally update the isEventManager property for the correct member
+        session.membersofBands = session.membersofBands.map((member) =>
+          member.band.id === bandId
+            ? { ...member, isEventManager: true }
+            : member,
+        );
         this.eventsGateway.server.emit(eventName, {
           message: lastMessage,
           eventAdmin: userName,

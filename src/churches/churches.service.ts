@@ -15,7 +15,7 @@ export class ChurchesService {
         createdAt: true,
         updatedAt: true,
       },
-      include: {
+      /* include: {
         events: {
           where: {
             date: {
@@ -28,7 +28,7 @@ export class ChurchesService {
             churchId: true,
           },
         },
-      },
+      }, */
     });
   }
 
@@ -52,17 +52,17 @@ export class ChurchesService {
       include: {
         _count: {
           select: {
-            events: true,
-            songs: true,
+            /* events: true,
+            songs: true, */
             memberships: true,
           },
         },
-        events: {
-          /* where: {
+        /* events: {
+           where: {
             date: {
               gt: currentDate,
             },
-          }, */
+          }, 
           orderBy: {
             date: 'asc',
           },
@@ -71,7 +71,7 @@ export class ChurchesService {
             updatedAt: true,
             churchId: true,
           },
-        },
+        }, */
       },
     });
   }

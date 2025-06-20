@@ -6,13 +6,14 @@
 
 generator client {
   provider = "prisma-client-js"
-   previewFeatures = ["omitApi"]
+     previewFeatures = ["omitApi"]
 }
 
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
 }
+
 
 model Users {
   id        Int          @id @default(autoincrement())
@@ -27,8 +28,10 @@ model Users {
   tokens    Temporal_token_pool[]
   memberships Memberships[]
   roles     Roles[]
-  eventsManaged Events[]
+  membersofBands MembersofBands[]
 }
+
+
 model Roles {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -36,12 +39,15 @@ model Roles {
   updatedAt DateTime @updatedAt
   users     Users[]
 }
+
+
 model Session {
-  id        String   @id 
+  id        String   @id
   sid       String   @unique
   data      String   @db.MediumText
   expiresAt   DateTime
 }
+
 
 model Temporal_token_pool {
   id             Int      @id @default(autoincrement())
@@ -53,6 +59,8 @@ model Temporal_token_pool {
   updatedAt      DateTime @updatedAt
 }
 
+
+
 model Churches {
   id        Int          @id @default(autoincrement())
   name      String       @unique
@@ -62,9 +70,32 @@ model Churches {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   memberships Memberships[]
+}
+
+model Bands {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
   events  Events[]
   songs     Songs[]
+  members   MembersofBands[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
+
+model MembersofBands {
+  id        Int      @id @default(autoincrement())
+  user      Users    @relation(fields: [userId], references: [id])
+  userId    Int
+  band      Bands    @relation(fields: [bandId], references: [id])
+  bandId    Int
+  role      String   // Rol del miembro en la banda (ej. vocalista, guitarrista, etc.)
+  active    Boolean  @default(true) // Controla si el miembro está activo en la banda
+  isAdmin   Boolean  @default(false) // Controla si el miembro es administrador de la banda
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isEventManager Boolean @default(false) // Controla si el miembro es el encargado de eventos de la banda
+}
+
 model Memberships {
   id        Int        @id @default(autoincrement())
   user      Users      @relation(fields: [userId], references: [id])
@@ -102,21 +133,19 @@ model Events {
   id        Int      @id @default(autoincrement())
   title     String
   date      DateTime
-  churchId  Int
-  church    Churches @relation(fields: [churchId], references: [id])
+  bandId  Int?
+  band    Bands? @relation(fields: [bandId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   songs     SongsEvents[]
-  eventManagerId Int
-  eventManager Users @relation(fields: [eventManagerId], references: [id])
 }
 
 model Songs {
   id        Int      @id @default(autoincrement())
   title     String   @unique
   artist    String?
-  churchId  Int
-  church    Churches @relation(fields: [churchId], references: [id])
+  bandId  Int?
+  band    Bands? @relation(fields: [bandId], references: [id])
   songType      String  @default("worship")
   youtubeLink String?
   key       String?

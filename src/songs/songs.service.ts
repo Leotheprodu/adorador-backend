@@ -6,19 +6,19 @@ import { PrismaService } from 'src/prisma.service';
 @Injectable()
 export class SongsService {
   constructor(private prisma: PrismaService) {}
-  async create(createSongDto: CreateSongDto, churchId: number) {
+  async create(createSongDto: CreateSongDto, bandId: number) {
     return await this.prisma.songs.create({
-      data: { ...createSongDto, churchId },
+      data: { ...createSongDto, bandId },
     });
   }
 
-  async findAll(churchId: number) {
+  async findAll(bandId: number) {
     return await this.prisma.songs.findMany({
-      where: { churchId },
+      where: { bandId },
       omit: {
         createdAt: true,
         updatedAt: true,
-        churchId: true,
+        bandId: true,
       },
       include: {
         _count: {
@@ -28,13 +28,13 @@ export class SongsService {
     });
   }
 
-  async findOne(id: number, churchId: number) {
+  async findOne(id: number, bandId: number) {
     return await this.prisma.songs.findUnique({
-      where: { id, churchId },
+      where: { id, bandId },
       omit: {
         createdAt: true,
         updatedAt: true,
-        churchId: true,
+        bandId: true,
       },
       include: {
         lyrics: {
@@ -71,16 +71,16 @@ export class SongsService {
     });
   }
 
-  async update(id: number, updateSongDto: UpdateSongDto, churchId: number) {
+  async update(id: number, updateSongDto: UpdateSongDto, bandId: number) {
     return await this.prisma.songs.update({
-      where: { id, churchId },
+      where: { id, bandId },
       data: updateSongDto,
     });
   }
 
-  async remove(id: number, churchId: number) {
+  async remove(id: number, bandId: number) {
     return await this.prisma.songs.delete({
-      where: { id, churchId },
+      where: { id, bandId },
     });
   }
 

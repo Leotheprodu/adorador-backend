@@ -25,7 +25,7 @@ import { churchRoles } from 'config/constants';
 import { Response } from 'express';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 
-@Controller('churches/:churchId/songs')
+@Controller('bands/:bandId/songs')
 @ApiTags('Songs')
 @UseGuards(PermissionsGuard)
 @CheckLoginStatus('loggedIn')
@@ -34,18 +34,18 @@ export class SongsController {
 
   @Post()
   @ApiOperation({ summary: 'Create Song' })
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   async create(
     @Res() res: Response,
     @Body() createSongDto: CreateSongDto,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
   ) {
     try {
-      const song = await this.songsService.create(createSongDto, churchId);
+      const song = await this.songsService.create(createSongDto, bandId);
       if (!song) {
         throw new HttpException(
           'Failed to create song',
@@ -61,10 +61,10 @@ export class SongsController {
   @Get()
   async findAll(
     @Res() res: Response,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
   ) {
     try {
-      const songs = await this.songsService.findAll(churchId);
+      const songs = await this.songsService.findAll(bandId);
       if (!songs) {
         throw new HttpException('No songs found', HttpStatus.NOT_FOUND);
       }
@@ -75,17 +75,17 @@ export class SongsController {
   }
 
   @Get(':id')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
-  })
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
   async findOne(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
   ) {
     try {
-      const song = await this.songsService.findOne(id, churchId);
+      const song = await this.songsService.findOne(id, bandId);
       if (!song) {
         throw new HttpException('Song not found', HttpStatus.NOT_FOUND);
       }
@@ -96,19 +96,19 @@ export class SongsController {
   }
 
   @Patch(':id')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   async update(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Body() updateSongDto: UpdateSongDto,
   ) {
     try {
-      const song = await this.songsService.update(id, updateSongDto, churchId);
+      const song = await this.songsService.update(id, updateSongDto, bandId);
       if (!song) {
         throw new HttpException(
           'Failed to update song',
@@ -122,18 +122,18 @@ export class SongsController {
   }
 
   @Delete(':id')
-  @CheckChurch({
-    checkBy: 'paramChurchId',
-    key: 'churchId',
+  /* @CheckChurch({
+    checkBy: 'paramBandId',
+    key: 'bandId',
     churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  })
+  }) */
   async remove(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
   ) {
     try {
-      const song = await this.songsService.remove(id, churchId);
+      const song = await this.songsService.remove(id, bandId);
       if (!song) {
         throw new HttpException(
           'Failed to delete song',

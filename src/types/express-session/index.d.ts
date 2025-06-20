@@ -13,5 +13,15 @@ declare module 'express-session' {
       roles: { id: number; name: string; churchRoleId: number }[];
       since: Date;
     }[];
+    membersofBands: {
+      id: number;
+      isAdmin: boolean;
+      isEventManager: boolean;
+      role: string;
+      band: {
+        id: number;
+        name: string;
+      };
+    }[];
   }
 }

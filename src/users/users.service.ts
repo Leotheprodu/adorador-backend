@@ -40,6 +40,18 @@ export class UsersService {
             memberSince: true,
           },
         },
+        membersofBands: {
+          where: { active: true },
+          select: {
+            id: true,
+            band: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
   }
@@ -83,6 +95,18 @@ export class UsersService {
           },
         },
         roles: true,
+        membersofBands: {
+          where: { active: true },
+          select: {
+            id: true,
+            band: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
       },
     });
   }

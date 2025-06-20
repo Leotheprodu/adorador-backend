@@ -12,6 +12,7 @@ import { SongsLyricsModule } from './songs-lyrics/songs-lyrics.module';
 import { SongsChordsModule } from './songs-chords/songs-chords.module';
 import { TemporalTokenPoolModule } from './temporal-token-pool/temporal-token-pool.module';
 import { ScheduleModule } from '@nestjs/schedule';
+import { BandsModule } from './bands/bands.module';
 @Module({
   imports: [
     UsersModule,
@@ -27,6 +28,7 @@ import { ScheduleModule } from '@nestjs/schedule';
     SongsChordsModule,
     TemporalTokenPoolModule,
     ScheduleModule.forRoot(),
+    BandsModule,
   ],
   controllers: [],
   providers: [],

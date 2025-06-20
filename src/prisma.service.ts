@@ -20,7 +20,6 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
           { name: 'user' },
           { name: 'moderator' },
           { name: 'editor' },
-          // Add more roles as needed
         ],
       });
       console.log('Initial roles created.');

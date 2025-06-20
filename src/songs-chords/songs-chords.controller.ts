@@ -27,15 +27,15 @@ import { Response } from 'express';
 import { churchRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 
-@Controller('churches/:churchId/songs/:songId/lyrics/:lyricId/chords')
+@Controller('bands/:bandId/songs/:songId/lyrics/:lyricId/chords')
 @ApiTags('Songs Chords')
 @UseGuards(PermissionsGuard)
 @CheckLoginStatus('loggedIn')
-@CheckChurch({
-  checkBy: 'paramChurchId',
-  key: 'churchId',
+/* @CheckChurch({
+  checkBy: 'paramBandId',
+  key: 'bandId',
   churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-})
+}) */
 export class SongsChordsController {
   constructor(
     private readonly songsChordsService: SongsChordsService,
@@ -45,7 +45,7 @@ export class SongsChordsController {
   @Post()
   async create(
     @Body() createSongsChordDto: CreateSongsChordDto,
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
@@ -81,7 +81,7 @@ export class SongsChordsController {
 
   @Get()
   async findAll(
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
@@ -99,7 +99,7 @@ export class SongsChordsController {
 
   @Get(':id')
   async findOne(
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
@@ -118,7 +118,7 @@ export class SongsChordsController {
 
   @Patch(':id')
   async update(
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,
@@ -150,7 +150,7 @@ export class SongsChordsController {
 
   @Delete(':id')
   async remove(
-    @Param('churchId', ParseIntPipe) churchId: number,
+    @Param('bandId', ParseIntPipe) bandId: number,
     @Res() res: Response,
     @Param('songId', ParseIntPipe) songId: number,
     @Param('lyricId', ParseIntPipe) lyricId: number,

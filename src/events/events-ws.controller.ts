@@ -15,6 +15,7 @@ import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard'
 import { CheckLoginStatus } from 'src/auth/decorators/permissions.decorators';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { checkAdminHandle } from 'src/auth/utils/checkAdminHandle';
+import { EventsService } from './events.service';
 
 export type lyricSelectedProps = {
   position: number;
@@ -23,7 +24,10 @@ export type lyricSelectedProps = {
 @UseGuards(PermissionsGuard)
 @Controller('events-ws')
 export class EventsGatewayController {
-  constructor(private readonly eventsGateway: EventsGateway) {}
+  constructor(
+    private readonly eventsGateway: EventsGateway,
+    private readonly eventsService: EventsService,
+  ) {}
 
   @CheckLoginStatus('loggedIn')
   @Post('event-selected-song')
@@ -34,9 +38,15 @@ export class EventsGatewayController {
   ) {
     try {
       const eventName = `eventSelectedSong-${body.id}`;
-      const eventManagerId = await this.eventsGateway.getEventManagerId(
-        body.id,
+      const eventManagerId = await this.eventsService.getEventManagerByEventId(
+        parseInt(body.id),
       );
+      if (!eventManagerId && !checkAdminHandle(session)) {
+        throw new HttpException(
+          'Event Manager not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
       if (session.userId === eventManagerId || checkAdminHandle(session)) {
         this.eventsGateway.storeMessage(eventName, {
           message: body.message,
@@ -63,9 +73,15 @@ export class EventsGatewayController {
   ) {
     try {
       const eventName = `lyricSelected-${body.id}`;
-      const eventManagerId = await this.eventsGateway.getEventManagerId(
-        body.id,
+      const eventManagerId = await this.eventsService.getEventManagerByEventId(
+        parseInt(body.id),
       );
+      if (!eventManagerId && !checkAdminHandle(session)) {
+        throw new HttpException(
+          'Event Manager not found',
+          HttpStatus.NOT_FOUND,
+        );
+      }
       if (session.userId === eventManagerId || checkAdminHandle(session)) {
         this.eventsGateway.storeMessage(eventName, {
           message: body.message,
