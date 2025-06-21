@@ -24,7 +24,7 @@ export class EventsGateway /* implements OnGatewayConnection, OnGatewayInit */ {
   private lastMessages: Map<string, any> = new Map();
   private messageExpiryTimes: Map<string, number> = new Map();
   private messageExpiryDuration: number = 3600000; // 1 hora en milisegundos
-  /* private eventManagers: Map<string, number> = new Map(); */ // Map para almacenar administradores de eventos
+  private eventManagers: Map<number, number> = new Map(); // Map para almacenar administradores de eventos
 
   constructor(
     @Inject(forwardRef(() => EventsService))
@@ -32,7 +32,7 @@ export class EventsGateway /* implements OnGatewayConnection, OnGatewayInit */ {
   ) {
     // Configurar un intervalo para verificar y eliminar mensajes expirados
     setInterval(() => this.cleanUpExpiredMessages(), 60000); // Verificar cada minuto
-    /* setInterval(() => this.cleanUpEventManagers(), 60000 * 60) */ // Limpiar cada hora
+    setInterval(() => this.cleanUpEventManagers(), 60000 * 60); // Limpiar cada hora
   }
   /*   afterInit(server: Server) {
     server.engine.use(sessionMiddleware);
@@ -88,12 +88,15 @@ export class EventsGateway /* implements OnGatewayConnection, OnGatewayInit */ {
       }
     });
   }
-  /* async getEventManagerId(eventId: string): Promise<number> {
+  async getBandManagerIdByEventId(eventId: number): Promise<number> {
     if (!this.eventManagers.has(eventId)) {
-      const managerId = await this.eventsService.getEventManagerByEventId(
-        parseInt(eventId),
-      );
-      this.eventManagers.set(eventId, managerId.eventManagerId);
+      const managerId =
+        await this.eventsService.getEventManagerByEventId(eventId);
+      if (!managerId) {
+        return null; // No hay un Event Manager asignado
+      } else {
+        this.eventManagers.set(eventId, managerId);
+      }
     }
     return this.eventManagers.get(eventId);
   }
@@ -101,7 +104,10 @@ export class EventsGateway /* implements OnGatewayConnection, OnGatewayInit */ {
     this.eventManagers.clear();
   }
 
-  cleanUpEventManagersForEvent(eventId: number) {
-    this.eventManagers.delete(eventId.toString());
-  } */
+  cleanUpBandManager(eventId: number) {
+    this.eventManagers.delete(eventId);
+  }
+  changeEventManager(eventId: number, userId: number) {
+    this.eventManagers.set(eventId, userId);
+  }
 }

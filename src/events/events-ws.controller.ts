@@ -38,7 +38,7 @@ export class EventsGatewayController {
   ) {
     try {
       const eventName = `eventSelectedSong-${body.id}`;
-      const eventManagerId = await this.eventsService.getEventManagerByEventId(
+      const eventManagerId = await this.eventsGateway.getBandManagerIdByEventId(
         parseInt(body.id),
       );
       if (!eventManagerId && !checkAdminHandle(session)) {
@@ -73,7 +73,7 @@ export class EventsGatewayController {
   ) {
     try {
       const eventName = `lyricSelected-${body.id}`;
-      const eventManagerId = await this.eventsService.getEventManagerByEventId(
+      const eventManagerId = await this.eventsGateway.getBandManagerIdByEventId(
         parseInt(body.id),
       );
       if (!eventManagerId && !checkAdminHandle(session)) {
