@@ -292,15 +292,14 @@ export class EventsController {
     @Session() session: SessionData,
   ) {
     try {
-      const event = await this.eventsService.changeEventManager(
+      const bandMember = await this.eventsService.changeBandEventManager(
         bandId,
         session.userId,
-        id,
       );
       const userName = session.name;
       const eventName = `eventSelectedSong-${id}`;
 
-      if (event) {
+      if (bandMember) {
         const lastMessage = this.eventsGateway.getLastMessage(eventName);
         // Optionally update the isEventManager property for the correct member
         session.membersofBands = session.membersofBands.map((member) =>
@@ -316,7 +315,7 @@ export class EventsController {
           .status(HttpStatus.OK)
           .send({ message: 'Event manager changed', eventManager: userName });
       } else {
-        if (!event) {
+        if (!bandMember) {
           throw new HttpException(
             'Event manager not changed',
             HttpStatus.BAD_REQUEST,

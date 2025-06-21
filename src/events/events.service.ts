@@ -216,7 +216,7 @@ export class EventsService {
     });
   }
   //NOTE revisar esta funcion, voy por aqui
-  async changeEventManager(bandId: number, userId: number, id: number) {
+  async changeBandEventManager(bandId: number, userId: number) {
     const eventManager = await this.prisma.membersofBands.findFirst({
       where: { bandId, isEventManager: true },
       select: {
@@ -235,10 +235,11 @@ export class EventsService {
           id: true,
         },
       });
-      return await this.prisma.membersofBands.update({
+      const memberofBandData = await this.prisma.membersofBands.update({
         where: { id: newEventManager.id },
         data: { isEventManager: true },
       });
+      return memberofBandData; // Devuelve el miembro de la banda actualizado
     } else {
       const newEventManager = await this.prisma.membersofBands.findFirst({
         where: { bandId, userId },
@@ -246,10 +247,11 @@ export class EventsService {
           id: true,
         },
       });
-      return await this.prisma.membersofBands.update({
+      const memberofBandData = await this.prisma.membersofBands.update({
         where: { id: newEventManager.id },
         data: { isEventManager: true },
       });
+      return memberofBandData; // Devuelve el miembro de la banda actualizado
     }
   }
 
@@ -269,9 +271,24 @@ export class EventsService {
         },
       },
     });
-    if (!event || event.band.members.length === 0) {
-      return null; // No hay un Event Manager asignado
+    if (
+      !event ||
+      !event.band ||
+      !event.band.members ||
+      event.band.members.length === 0
+    ) {
+      return null; // No hay Event Manager asignado
     }
-    return event.band.members[0].userId;
+    return event.band.members[0].userId; // Devuelve el userId del Event Manager
+  }
+
+  async getEventManagerIdByBandId(bandId: number) {
+    const eventManager = await this.prisma.membersofBands.findFirst({
+      where: { bandId, isEventManager: true },
+      select: {
+        userId: true,
+      },
+    });
+    return eventManager ? eventManager.userId : null; // Devuelve el userId del Event Manager o null si no existe
   }
 }
