@@ -20,6 +20,7 @@ import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard'
 import {
   CheckChurch,
   CheckLoginStatus,
+  CheckUserMemberOfBand,
 } from 'src/auth/decorators/permissions.decorators';
 import { churchRoles } from 'config/constants';
 import { Response } from 'express';
@@ -34,11 +35,10 @@ export class SongsController {
 
   @Post()
   @ApiOperation({ summary: 'Create Song' })
-  /* @CheckChurch({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
+  })
   async create(
     @Res() res: Response,
     @Body() createSongDto: CreateSongDto,
