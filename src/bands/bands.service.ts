@@ -75,7 +75,6 @@ export class BandsService {
         createdAt: true,
         updatedAt: true,
       },
-
       include: {
         _count: {
           select: {
@@ -83,15 +82,23 @@ export class BandsService {
             songs: true,
           },
         },
-        events: {
-          /* where: {
-            date: {
-              gt: currentDate,
-            },
-          }, */
+        songs: {
           orderBy: {
-            date: 'asc',
+            events: {
+              _count: 'desc',
+            },
           },
+          take: 5,
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+        events: {
+          orderBy: {
+            date: 'desc',
+          },
+          take: 5,
           omit: {
             createdAt: true,
             updatedAt: true,
