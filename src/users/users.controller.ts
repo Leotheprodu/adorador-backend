@@ -19,16 +19,19 @@ import { Prisma } from '@prisma/client';
 import { EmailService } from 'src/email/email.service';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import {
   AppRole,
   CheckLoginStatus,
   CheckUserId,
 } from 'src/auth/decorators/permissions.decorators';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { JwtPayload } from 'src/auth/services/jwt.service';
 import { userRoles } from 'config/constants';
 
 @Controller('users')
 @ApiTags('users')
-@UseGuards(PermissionsGuard)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class UsersController {
   constructor(
     private usersService: UsersService,

@@ -1,9 +1,9 @@
 import { userRoles } from 'config/constants';
-import { SessionData } from 'express-session';
+import { JwtPayload } from '../services/jwt.service';
 
-export const checkAdminHandle = (session: SessionData): boolean => {
-  if (session.isLoggedIn) {
-    if (session?.roles.includes(userRoles.admin.id)) {
+export const checkAdminHandle = (userPayload: JwtPayload): boolean => {
+  if (userPayload) {
+    if (userPayload?.roles.includes(userRoles.admin.id)) {
       return true;
     }
   }

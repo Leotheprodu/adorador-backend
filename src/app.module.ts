@@ -13,6 +13,8 @@ import { SongsChordsModule } from './songs-chords/songs-chords.module';
 import { TemporalTokenPoolModule } from './temporal-token-pool/temporal-token-pool.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BandsModule } from './bands/bands.module';
+import { JwtUserMiddleware } from './auth/middlewares/jwt-user.middleware';
+
 @Module({
   imports: [
     UsersModule,
@@ -33,4 +35,8 @@ import { BandsModule } from './bands/bands.module';
   controllers: [],
   providers: [],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(JwtUserMiddleware).forRoutes('*'); // Aplicar a todas las rutas
+  }
+}

@@ -21,7 +21,8 @@ import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { Response } from 'express';
-import { SessionData } from 'express-session';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { JwtPayload } from 'src/auth/services/jwt.service';
 import { SongsService } from 'src/songs/songs.service';
 import { churchRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
@@ -165,7 +166,7 @@ export class SongsLyricsController {
     key: 'bandId',
   }) */
   async update(
-    @Session() session: SessionData,
+    @GetUser() user: JwtPayload,
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
     @Param('songId', ParseIntPipe) songId: number,
@@ -208,7 +209,7 @@ export class SongsLyricsController {
     key: 'bandId',
   }) */
   async updateArrayOfLyrics(
-    @Session() session: SessionData,
+    @GetUser() user: JwtPayload,
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
     @Param('songId', ParseIntPipe) songId: number,

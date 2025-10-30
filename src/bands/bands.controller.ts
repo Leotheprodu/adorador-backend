@@ -10,7 +10,6 @@ import {
   Patch,
   Post,
   Res,
-  Session,
   UseGuards,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
@@ -22,10 +21,11 @@ import {
   AppRole,
   CheckLoginStatus,
 } from 'src/auth/decorators/permissions.decorators';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { JwtPayload } from 'src/auth/services/jwt.service';
 import { userRoles } from 'config/constants';
 import { CreateBandDto } from './dto/create-band.dto';
 import { ApiGetBands } from './bands.swagger';
-import { SessionData } from 'express-session';
 
 @Controller('bands')
 @ApiTags('bands')
@@ -47,18 +47,13 @@ export class BandsController {
     }
   }
   @Get('user-bands')
-  async getBandsByUserId(
-    @Session() session: SessionData,
-    @Res() res: Response,
-  ) {
+  @CheckLoginStatus('loggedIn')
+  async getBandsByUserId(@GetUser() user: JwtPayload, @Res() res: Response) {
     try {
-      const userId = session.userId;
-      if (!session.isLoggedIn) {
-        throw new HttpException('User not logged in', HttpStatus.UNAUTHORIZED);
-      }
+      const userId = user.sub;
       const bandsData = await this.bandsService.getBandsByUserId(userId);
       if (!bandsData)
-        throw new HttpException('Users not found', HttpStatus.NOT_FOUND);
+        throw new HttpException('Bands not found', HttpStatus.NOT_FOUND);
 
       res.send(bandsData);
     } catch (e) {

@@ -1,18 +1,23 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { userRoles } from 'config/constants';
 import { Observable } from 'rxjs';
-import { SessionData } from 'express-session';
+import { JwtPayload } from 'src/auth/services/jwt.service';
 
 @Injectable()
 export class UserStatusGuard implements CanActivate {
   canActivate(
     context: ExecutionContext,
   ): boolean | Promise<boolean> | Observable<boolean> {
-    const session = context.switchToHttp().getRequest().session as SessionData;
+    const user = context.switchToHttp().getRequest().user as JwtPayload;
     const { id } = context.switchToHttp().getRequest().params;
+
+    if (!user) {
+      return false;
+    }
+
     if (
-      session.userId !== parseInt(id) &&
-      session.roles.includes(userRoles.admin.id) === false
+      user.sub !== parseInt(id) &&
+      user.roles.includes(userRoles.admin.id) === false
     ) {
       return false;
     }

@@ -10,7 +10,8 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { EventsGateway } from './events.gateway';
-import { SessionData } from 'express-session';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { JwtPayload } from 'src/auth/services/jwt.service';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { CheckLoginStatus } from 'src/auth/decorators/permissions.decorators';
 import { catchHandle } from 'src/chore/utils/catchHandle';
@@ -34,27 +35,27 @@ export class EventsGatewayController {
   async handleEventSelectedSong(
     @Body() body: { id: string; message: number },
     @Res() res: Response,
-    @Session() session: SessionData,
+    @GetUser() user: JwtPayload,
   ) {
     try {
       const eventName = `eventSelectedSong-${body.id}`;
       const eventManagerId = await this.eventsGateway.getBandManagerIdByEventId(
         parseInt(body.id),
       );
-      if (!eventManagerId && !checkAdminHandle(session)) {
+      if (!eventManagerId && !checkAdminHandle(user)) {
         throw new HttpException(
           'Event Manager not found',
           HttpStatus.NOT_FOUND,
         );
       }
-      if (session.userId === eventManagerId || checkAdminHandle(session)) {
+      if (user.sub === eventManagerId || checkAdminHandle(user)) {
         this.eventsGateway.storeMessage(eventName, {
           message: body.message,
-          eventAdmin: session.name,
+          eventAdmin: user.name,
         });
         this.eventsGateway.server.emit(eventName, {
           message: body.message,
-          eventAdmin: session.name,
+          eventAdmin: user.name,
         });
         res.status(HttpStatus.ACCEPTED).send({ status: 'success' });
       } else {
@@ -68,7 +69,7 @@ export class EventsGatewayController {
   @Post('lyric-selected')
   async handleLyricSelected(
     @Body() body: { id: string; message: lyricSelectedProps },
-    @Session() session: SessionData,
+    @GetUser() user: JwtPayload,
     @Res() res: Response,
   ) {
     try {
@@ -76,20 +77,20 @@ export class EventsGatewayController {
       const eventManagerId = await this.eventsGateway.getBandManagerIdByEventId(
         parseInt(body.id),
       );
-      if (!eventManagerId && !checkAdminHandle(session)) {
+      if (!eventManagerId && !checkAdminHandle(user)) {
         throw new HttpException(
           'Event Manager not found',
           HttpStatus.NOT_FOUND,
         );
       }
-      if (session.userId === eventManagerId || checkAdminHandle(session)) {
+      if (user.sub === eventManagerId || checkAdminHandle(user)) {
         this.eventsGateway.storeMessage(eventName, {
           message: body.message,
-          eventAdmin: session.name,
+          eventAdmin: user.name,
         });
         this.eventsGateway.server.emit(eventName, {
           message: body.message,
-          eventAdmin: session.name,
+          eventAdmin: user.name,
         });
         res.status(HttpStatus.ACCEPTED).send({ status: 'success' });
       } else {

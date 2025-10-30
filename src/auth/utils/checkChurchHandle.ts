@@ -1,19 +1,19 @@
 import { ForbiddenException } from '@nestjs/common';
 import { CheckChurchType } from '../decorators/permissions.decorators';
-import { SessionData } from 'express-session';
+import { JwtPayload } from '../services/jwt.service';
 import { Request } from 'express';
 import { MembershipsService } from 'src/memberships/memberships.service';
 
 export const checkChurchHandle = async (
   checkChurch: CheckChurchType,
-  session: SessionData,
+  userPayload: JwtPayload,
   request: Request,
   membershipsService: MembershipsService,
 ) => {
   // 3. Verificar si el elemento que se va a editar pertenece a la iglesia del usuario autenticado
   if (checkChurch) {
     const { checkBy, key, churchRolesBypass, churchRoleStrict } = checkChurch;
-    const userReqMemberships = session.memberships ?? [];
+    const userReqMemberships = userPayload.memberships ?? [];
     const userReqChurchIds = userReqMemberships.map(
       (membership) => membership.church.id,
     );
