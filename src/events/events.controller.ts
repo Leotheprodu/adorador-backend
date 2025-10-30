@@ -65,14 +65,14 @@ export class EventsController {
     @GetUser() user: JwtPayload,
   ) {
     try {
-      const service = await this.eventsService.create(createEventDto, bandId);
-      if (!service) {
+      const event = await this.eventsService.create(createEventDto, bandId);
+      if (!event) {
         throw new HttpException(
-          'Failed to create service',
+          'Failed to create event',
           HttpStatus.BAD_REQUEST,
         );
       }
-      res.status(HttpStatus.CREATED).send(service);
+      res.status(HttpStatus.CREATED).send(event);
     } catch (e) {
       catchHandle(e);
     }
