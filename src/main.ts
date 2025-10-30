@@ -4,11 +4,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { corsLink } from 'config/constants';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { sessionMiddleware } from './auth/middlewares/session.middleware';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
-  app.use(sessionMiddleware);
 
   app.useGlobalPipes(
     new ValidationPipe({
@@ -27,7 +25,7 @@ async function bootstrap() {
   app.enableCors({
     origin: corsLink,
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true,
+    credentials: false, // No necesitamos credentials con JWT
   });
   app.set('trust proxy', 1);
   const isProduction = process.env.NODE_ENV === 'production';

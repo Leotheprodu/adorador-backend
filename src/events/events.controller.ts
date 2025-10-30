@@ -32,7 +32,8 @@ import {
   AddSongsToEventDto,
   RemoveSongsToEventDto,
 } from './dto/add-songs-to-event.dto';
-import { SessionData } from 'express-session';
+import { GetUser } from 'src/auth/decorators/get-user.decorator';
+import { JwtPayload } from 'src/auth/services/jwt.service';
 import { EventsGateway } from './events.gateway';
 import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 
@@ -61,7 +62,7 @@ export class EventsController {
     @Body() createEventDto: CreateEventDto,
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
-    @Session() session: SessionData,
+    @GetUser() user: JwtPayload,
   ) {
     try {
       const service = await this.eventsService.create(createEventDto, bandId);
@@ -289,24 +290,19 @@ export class EventsController {
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
-    @Session() session: SessionData,
+    @GetUser() user: JwtPayload,
   ) {
     try {
       const bandMember = await this.eventsService.changeBandEventManager(
         bandId,
-        session.userId,
+        user.sub,
       );
-      const userName = session.name;
+      const userName = user.name;
       const eventName = `eventSelectedSong-${id}`;
 
       if (bandMember) {
         const lastMessage = this.eventsGateway.getLastMessage(eventName);
-        // Optionally update the isEventManager property for the correct member
-        session.membersofBands = session.membersofBands.map((member) =>
-          member.band.id === bandId
-            ? { ...member, isEventManager: true }
-            : member,
-        );
+        // Note: With JWT, the user info will be updated on next token refresh
         this.eventsGateway.server.emit(eventName, {
           message: lastMessage,
           eventAdmin: userName,

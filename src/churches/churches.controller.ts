@@ -18,7 +18,7 @@ import { ApiGetChurches } from './churches.swagger';
 import { Response } from 'express';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { CreateChurchDto } from './dto/create-church.dto';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { JwtPermissionsGuard } from 'src/auth/guards/jwt-permissions.guard';
 import {
   AppRole,
   CheckLoginStatus,
@@ -27,7 +27,7 @@ import { userRoles } from 'config/constants';
 
 @Controller('churches')
 @ApiTags('churches')
-@UseGuards(PermissionsGuard)
+@UseGuards(JwtPermissionsGuard)
 export class ChurchesController {
   constructor(private churchesService: ChurchesService) {}
 

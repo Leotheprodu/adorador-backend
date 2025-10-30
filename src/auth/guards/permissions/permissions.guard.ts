@@ -3,9 +3,10 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { SessionData } from 'express-session';
+import { JwtPayload } from 'src/auth/services/jwt.service';
 import {
   APP_ROLE_KEY,
   AppRoleType,
@@ -34,12 +35,26 @@ export class PermissionsGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext) {
     const request = context.switchToHttp().getRequest();
-    const session = request.session as SessionData;
 
+    // Asumimos que el JWT ya fue validado por JwtAuthGuard
+    // Si no hay usuario, significa que no pasó por la validación JWT
+    const userPayload = request.user as JwtPayload;
+
+    // Primero obtener el checkLoginStatus para verificar si la ruta permite acceso sin autenticación
     const checkLoginStatus = this.reflector.get<CheckLoginStatusType>(
       CHECK_LOGIN_STATUS,
       context.getHandler(),
     );
+
+    // Si no hay usuario y la ruta requiere 'notLoggedIn', permitir el acceso
+    if (!userPayload && checkLoginStatus === 'notLoggedIn') {
+      return true;
+    }
+
+    // Si no hay usuario y la ruta no es 'notLoggedIn', rechazar
+    if (!userPayload) {
+      throw new UnauthorizedException('No JWT token provided or invalid');
+    }
     const checkUserIdParam = this.reflector.get<CheckUserIdType>(
       CHECK_USER_ID_KEY,
       context.getHandler(),
@@ -59,7 +74,7 @@ export class PermissionsGuard implements CanActivate {
       );
 
     try {
-      checkLoginStatusHandle(checkLoginStatus, session);
+      checkLoginStatusHandle(checkLoginStatus, userPayload);
     } catch (error) {
       console.log('User is not authenticated.');
       throw new ForbiddenException('User is not authenticated.');
@@ -67,7 +82,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Revisar si el usuario es administrador
     try {
-      checkAdminHandle(session);
+      checkAdminHandle(userPayload);
     } catch (error) {
       console.log('User is not an admin.');
       throw new ForbiddenException('User is not an admin.');
@@ -75,7 +90,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Revisar si el usuario tiene los roles necesarios para acceder al controlador
     try {
-      checkAppRolesHandle(appRoles, session);
+      checkAppRolesHandle(appRoles, userPayload);
     } catch (error) {
       console.log('User does not have the required roles.');
       throw new ForbiddenException('User does not have the required roles.');
@@ -85,7 +100,7 @@ export class PermissionsGuard implements CanActivate {
     try {
       await checkChurchHandle(
         checkChurch,
-        session,
+        userPayload,
         request,
         this.membershipsService,
       );
@@ -100,7 +115,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Revisar si el usuario autenticado es el mismo que se realiza la petición
     try {
-      checkUserIdParamHandle(checkUserIdParam, session, request);
+      checkUserIdParamHandle(checkUserIdParam, userPayload, request);
     } catch (error) {
       console.log('User ID does not match.');
       throw new ForbiddenException('User ID does not match.');
@@ -108,7 +123,7 @@ export class PermissionsGuard implements CanActivate {
 
     // Revisar si el usuario es miembro de la banda
     /* try {
-      isMemberOfBand(checkUserIsMemberOfBand, session, request);
+      isMemberOfBand(checkUserIsMemberOfBand, userPayload, request);
     } catch (error) {
       throw new ForbiddenException('User is not a member of the band.');
     } */

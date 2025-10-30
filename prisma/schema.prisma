@@ -21,6 +21,7 @@ model Users {
   email     String       @unique
   phone     String?      @unique
   password  String
+  refreshToken String?   @db.Text
   birthdate DateTime?
   status    String       @default("inactive")
   createdAt DateTime     @default(now())
@@ -38,14 +39,6 @@ model Roles {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   users     Users[]
-}
-
-
-model Session {
-  id        String   @id
-  sid       String   @unique
-  data      String   @db.MediumText
-  expiresAt   DateTime
 }
 
 

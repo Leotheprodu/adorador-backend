@@ -1,17 +1,17 @@
-import { SessionData } from 'express-session';
+import { JwtPayload } from '../services/jwt.service';
 import { CheckUserMemberOfBandType } from '../decorators/permissions.decorators';
 import { Request } from 'express';
 import { ForbiddenException } from '@nestjs/common';
 
 export const isMemberOfBand = (
   checkUserIsMemberOfBand: CheckUserMemberOfBandType,
-  session: SessionData,
+  userPayload: JwtPayload,
   request: Request,
 ) => {
   const { checkBy, key, isAdmin } = checkUserIsMemberOfBand;
   const bandId =
     checkBy === 'paramBandId' ? request.params[key] : request.body[key];
-  const bandsOfUser = session.membersofBands ?? [];
+  const bandsOfUser = userPayload.membersofBands ?? [];
   const isMember = bandsOfUser.some(
     (band) => band.band.id === parseInt(bandId),
   );
