@@ -136,6 +136,25 @@ export class EventsController {
     @Body() updateEventDto: UpdateEventDto,
   ) {
     try {
+      // Verificar que el evento exista
+      const existingEvent = await this.eventsService.findOne(id, bandId);
+      if (!existingEvent) {
+        throw new HttpException('Event not found', HttpStatus.NOT_FOUND);
+      }
+
+      // Verificar que el evento no haya pasado
+      const currentDate = new Date();
+      currentDate.setHours(0, 0, 0, 0);
+      const eventDate = new Date(existingEvent.date);
+      eventDate.setHours(0, 0, 0, 0);
+
+      if (eventDate < currentDate) {
+        throw new HttpException(
+          'Cannot update past events',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
       const event = await this.eventsService.update(id, updateEventDto, bandId);
       if (!event) {
         throw new HttpException('Event not updated', HttpStatus.BAD_REQUEST);
