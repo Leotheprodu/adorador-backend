@@ -86,17 +86,9 @@ export class EventsController {
   async findAll(
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
-    @Query('includeAllDates') includeAllDates: string,
   ) {
     try {
-      const parsedIncludeAllDates =
-        includeAllDates !== undefined && includeAllDates
-          ? JSON.parse(includeAllDates)
-          : false;
-      const events = await this.eventsService.findAll(
-        bandId,
-        parsedIncludeAllDates,
-      );
+      const events = await this.eventsService.findAll(bandId);
       if (!events) {
         throw new HttpException('No events found', HttpStatus.NOT_FOUND);
       }

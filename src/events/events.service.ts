@@ -23,13 +23,10 @@ export class EventsService {
     });
   }
 
-  async findAll(bandId: number, includeAllDates: boolean) {
-    const currentDate = new Date();
-    currentDate.setHours(0, 0, 0, 0); // Establece la hora en 00:00:00 para que incluya los eventos de hoy
+  async findAll(bandId: number) {
     return this.prisma.events.findMany({
       where: {
         bandId,
-        ...(includeAllDates ? {} : { date: { gt: currentDate } }), // Aplica el filtro de fecha solo si includeAllDates es false
       },
       orderBy: {
         date: 'asc', // Ordena por fecha, de más viejo a más nuevo
