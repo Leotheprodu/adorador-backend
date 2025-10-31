@@ -350,6 +350,167 @@ export class SongsLyricsService {
     return 5; // 75-100% = Final
   }
 
+  // Función para redistribuir posiciones y evitar duplicados
+  // IMPORTANTE: Mantiene el orden original de los acordes
+  private redistributePositions(
+    chordsWithPositions: Array<{
+      chord: string;
+      charPosition: number;
+      calculatedPosition: number;
+    }>,
+  ): Array<{ chord: string; charPosition: number; finalPosition: number }> {
+    // Si no hay acordes, retornar vacío
+    if (chordsWithPositions.length === 0) return [];
+
+    // Ordenar por posición en caracteres (orden de aparición en el archivo)
+    const sorted = [...chordsWithPositions].sort(
+      (a, b) => a.charPosition - b.charPosition,
+    );
+
+    // Asignar posiciones iniciales calculadas
+    const assignments = sorted.map((item, index) => ({
+      ...item,
+      index,
+      finalPosition: item.calculatedPosition,
+    }));
+
+    // Detectar y resolver conflictos manteniendo el orden
+    let hasConflict = true;
+    while (hasConflict) {
+      hasConflict = false;
+      const usedPositions = new Map<number, number>(); // posición -> índice del acorde
+
+      for (let i = 0; i < assignments.length; i++) {
+        const currentPos = assignments[i].finalPosition;
+
+        if (usedPositions.has(currentPos)) {
+          // Hay conflicto: dos acordes quieren la misma posición
+          hasConflict = true;
+          const conflictIndex = usedPositions.get(currentPos)!;
+
+          // El acorde que viene DESPUÉS debe moverse hacia adelante
+          // Buscar la siguiente posición disponible
+          let newPos = currentPos + 1;
+          while (
+            newPos <= 5 &&
+            Array.from(usedPositions.keys()).includes(newPos)
+          ) {
+            newPos++;
+          }
+
+          if (newPos <= 5) {
+            assignments[i].finalPosition = newPos;
+          } else {
+            // No hay espacio adelante, necesitamos comprimir todos hacia atrás
+            this.compressPositions(assignments);
+            hasConflict = false; // La compresión resuelve todos los conflictos
+            break;
+          }
+        }
+
+        usedPositions.set(currentPos, i);
+      }
+    }
+
+    return assignments.map(({ chord, charPosition, finalPosition }) => ({
+      chord,
+      charPosition,
+      finalPosition,
+    }));
+  }
+
+  // Función para comprimir acordes cuando no hay espacio
+  private compressPositions(
+    assignments: Array<{
+      chord: string;
+      charPosition: number;
+      calculatedPosition: number;
+      index: number;
+      finalPosition: number;
+    }>,
+  ): void {
+    const count = assignments.length;
+
+    // Distribuir equitativamente en las 5 posiciones
+    for (let i = 0; i < count; i++) {
+      // Calcular posición proporcional
+      const position = Math.ceil(((i + 1) / count) * 5);
+      assignments[i].finalPosition = Math.max(1, Math.min(5, position));
+    }
+
+    // Asegurar que no haya duplicados después de la compresión
+    const used = new Set<number>();
+    for (let i = 0; i < assignments.length; i++) {
+      let pos = assignments[i].finalPosition;
+
+      // Si está ocupado, buscar el siguiente disponible
+      while (used.has(pos) && pos <= 5) {
+        pos++;
+      }
+
+      if (pos > 5) {
+        // Buscar hacia atrás desde la posición original
+        pos = assignments[i].finalPosition - 1;
+        while (pos >= 1 && used.has(pos)) {
+          pos--;
+        }
+      }
+
+      assignments[i].finalPosition = pos;
+      used.add(pos);
+    }
+  }
+
+  // Función para optimizar la distribución de acordes en posiciones 1-5
+  private optimizeDistribution(
+    chordsWithPositions: Array<{
+      chord: string;
+      charPosition: number;
+      calculatedPosition: number;
+    }>,
+  ): Array<{ chord: string; charPosition: number; finalPosition: number }> {
+    const count = chordsWithPositions.length;
+
+    // Casos especiales para distribución óptima
+    const result: Array<{
+      chord: string;
+      charPosition: number;
+      finalPosition: number;
+    }> = [];
+
+    for (let i = 0; i < count; i++) {
+      let finalPosition: number;
+
+      switch (count) {
+        case 1:
+          finalPosition = 3; // Centro
+          break;
+        case 2:
+          finalPosition = i === 0 ? 2 : 4; // Distribuir en 2 y 4
+          break;
+        case 3:
+          finalPosition = i === 0 ? 1 : i === 1 ? 3 : 5; // 1, 3, 5
+          break;
+        case 4:
+          finalPosition = i === 0 ? 1 : i === 1 ? 2 : i === 2 ? 4 : 5; // 1, 2, 4, 5
+          break;
+        case 5:
+          finalPosition = i + 1; // 1, 2, 3, 4, 5
+          break;
+        default:
+          finalPosition = chordsWithPositions[i].calculatedPosition;
+      }
+
+      result.push({
+        chord: chordsWithPositions[i].chord,
+        charPosition: chordsWithPositions[i].charPosition,
+        finalPosition,
+      });
+    }
+
+    return result;
+  }
+
   // Función para validar que no haya más de 5 acordes por línea
   private validateMaxChordsPerLine(lines: string[]): {
     valid: boolean;
@@ -516,7 +677,29 @@ export class SongsLyricsService {
           originalLyricsLine.length,
         );
 
-        for (const { chord, charPosition } of chordsWithPosition) {
+        // Calcular posiciones iniciales para todos los acordes
+        const chordsWithCalculatedPositions = chordsWithPosition.map(
+          ({ chord, charPosition }) => ({
+            chord,
+            charPosition,
+            calculatedPosition: this.calculateChordPosition(
+              charPosition,
+              referenceLength,
+            ),
+          }),
+        );
+
+        // Redistribuir posiciones para evitar duplicados
+        const chordsWithFinalPositions = this.redistributePositions(
+          chordsWithCalculatedPositions,
+        );
+
+        // Guardar los acordes con sus posiciones finales
+        for (const {
+          chord,
+          charPosition,
+          finalPosition,
+        } of chordsWithFinalPositions) {
           const match = chord.match(
             /^([A-G][#b]?)(maj7|mMaj7|dim7|m7b5|maj9|maj11|maj13|sus4|sus2|aug|dim|m13|m11|m9|m7|7|9|11|13|m)?(\/([A-G][#b]?)(maj7|mMaj7|dim7|m7b5|maj9|maj11|maj13|sus4|sus2|aug|dim|m13|m11|m9|m7|7|9|11|13|m)?)?$/,
           );
@@ -536,20 +719,13 @@ export class SongsLyricsService {
               (!chordQuality || this.chordQualities.includes(chordQuality)) &&
               (!slashRoot || this.rootNotes.includes(slashRoot))
             ) {
-              // Calcular la posición del acorde (1-5) basada en su ubicación
-              // en relación a la longitud de referencia (para saber cuándo tocar)
-              const chordPosition = this.calculateChordPosition(
-                charPosition,
-                referenceLength,
-              );
-
               await this.prisma.songs_Chords.create({
                 data: {
                   lyricId: lyric.id,
                   rootNote,
                   chordQuality: chordQuality || '',
                   slashChord: slashRoot || '',
-                  position: chordPosition,
+                  position: finalPosition, // Usar posición redistribuida
                 },
               });
             }
