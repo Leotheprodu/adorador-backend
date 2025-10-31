@@ -67,6 +67,9 @@ export class SongsService {
             },
           },
         },
+        _count: {
+          select: { events: true, lyrics: true },
+        },
       },
     });
   }
