@@ -99,6 +99,8 @@ export class EventsController {
   }
 
   @Get(':id')
+  @CheckLoginStatus('public')
+  // Endpoint público - permite acceso con o sin autenticación
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
@@ -265,7 +267,8 @@ export class EventsController {
   }
 
   @Get(':id/songs')
-  @CheckLoginStatus('loggedIn')
+  @CheckLoginStatus('public')
+  // Endpoint público - permite ver las canciones de un evento
   /* @CheckChurch({
     checkBy: 'paramBandId',
     key: 'bandId',

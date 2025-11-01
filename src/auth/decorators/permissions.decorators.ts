@@ -6,7 +6,7 @@ export const CheckUserId = (param: CheckUserIdType) =>
   SetMetadata(CHECK_USER_ID_KEY, param);
 
 export const CHECK_LOGIN_STATUS = 'checkLoginStatus';
-export type CheckLoginStatusType = 'loggedIn' | 'notLoggedIn';
+export type CheckLoginStatusType = 'loggedIn' | 'notLoggedIn' | 'public';
 export const CheckLoginStatus = (condition: CheckLoginStatusType) =>
   SetMetadata(CHECK_LOGIN_STATUS, condition);
 

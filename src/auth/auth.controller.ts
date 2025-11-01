@@ -159,7 +159,7 @@ export class AuthController {
   }
 
   @Post('/refresh')
-  @CheckLoginStatus('notLoggedIn')
+  @CheckLoginStatus('public')
   async refreshToken(@Res() res: Response, @Body() body: RefreshTokenDto) {
     try {
       const payload = this.authJwtService.verifyRefreshToken(body.refreshToken);
@@ -247,7 +247,7 @@ export class AuthController {
 
   @ApiVerify()
   @Get('/verify-email/:token')
-  @CheckLoginStatus('notLoggedIn')
+  @CheckLoginStatus('public')
   async verifyEmail(@Res() res: Response, @Param('token') token: string) {
     try {
       const temporalTokenData =
