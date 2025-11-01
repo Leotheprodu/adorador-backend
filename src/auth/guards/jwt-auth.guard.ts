@@ -14,8 +14,11 @@ export class JwtAuthGuard implements CanActivate {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
 
+    // Si no hay token, permitir el paso y dejar que PermissionsGuard decida
+    // según el decorador @CheckLoginStatus
     if (!token) {
-      throw new UnauthorizedException('Token not found');
+      request.user = null;
+      return true;
     }
 
     try {
@@ -24,7 +27,10 @@ export class JwtAuthGuard implements CanActivate {
       request.user = payload;
       return true;
     } catch (error) {
-      throw new UnauthorizedException('Invalid token');
+      // Si el token es inválido, también permitir el paso y dejar que
+      // PermissionsGuard maneje la autorización
+      request.user = null;
+      return true;
     }
   }
 
