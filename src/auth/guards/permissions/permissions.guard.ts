@@ -51,7 +51,12 @@ export class PermissionsGuard implements CanActivate {
       return true;
     }
 
-    // Si no hay usuario y la ruta no es 'notLoggedIn', rechazar
+    // Si la ruta es 'public', permitir acceso con o sin autenticación
+    if (checkLoginStatus === 'public') {
+      return true;
+    }
+
+    // Si no hay usuario y la ruta no es 'notLoggedIn' ni 'public', rechazar
     if (!userPayload) {
       throw new UnauthorizedException('No JWT token provided or invalid');
     }
