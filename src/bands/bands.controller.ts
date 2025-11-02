@@ -25,7 +25,14 @@ import { GetUser } from 'src/auth/decorators/get-user.decorator';
 import { JwtPayload } from 'src/auth/services/jwt.service';
 import { userRoles } from 'config/constants';
 import { CreateBandDto } from './dto/create-band.dto';
-import { ApiGetBands } from './bands.swagger';
+import {
+  ApiGetBands,
+  ApiGetUserBands,
+  ApiCreateBand,
+  ApiGetBand,
+  ApiUpdateBand,
+  ApiDeleteBand,
+} from './bands.swagger';
 
 @Controller('bands')
 @ApiTags('bands')
@@ -46,6 +53,7 @@ export class BandsController {
       catchHandle(e);
     }
   }
+  @ApiGetUserBands()
   @Get('user-bands')
   @CheckLoginStatus('loggedIn')
   async getBandsByUserId(@GetUser() user: JwtPayload, @Res() res: Response) {
@@ -61,6 +69,7 @@ export class BandsController {
     }
   }
 
+  @ApiCreateBand()
   @Post()
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)
@@ -76,6 +85,7 @@ export class BandsController {
     }
   }
 
+  @ApiGetBand()
   @Get(':id')
   @CheckLoginStatus('loggedIn')
   async getBand(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
@@ -90,6 +100,7 @@ export class BandsController {
     }
   }
 
+  @ApiUpdateBand()
   @Patch(':id')
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)
@@ -109,6 +120,7 @@ export class BandsController {
     }
   }
 
+  @ApiDeleteBand()
   @Delete(':id')
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)

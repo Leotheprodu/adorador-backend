@@ -14,7 +14,14 @@ import {
 import { ChurchRolesService } from './church-roles.service';
 import { CreateChurchRoleDto } from './dto/create-church-role.dto';
 import { UpdateChurchRoleDto } from './dto/update-church-role.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateChurchRole,
+  ApiGetAllChurchRoles,
+  ApiGetChurchRole,
+  ApiUpdateChurchRole,
+  ApiDeleteChurchRole,
+} from './church-roles.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {
   AppRole,
@@ -30,7 +37,7 @@ import { userRoles } from 'config/constants';
 export class ChurchRolesController {
   constructor(private readonly churchRolesService: ChurchRolesService) {}
 
-  @ApiOperation({ summary: 'Create role of churches' })
+  @ApiCreateChurchRole()
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)
   @Post()
@@ -50,16 +57,19 @@ export class ChurchRolesController {
     }
   }
 
+  @ApiGetAllChurchRoles()
   @Get()
   async findAll() {
     return this.churchRolesService.findAll();
   }
 
+  @ApiGetChurchRole()
   @Get(':id')
   async findOne(@Param('id') id: string) {
     return this.churchRolesService.findOne(+id);
   }
 
+  @ApiUpdateChurchRole()
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -68,6 +78,7 @@ export class ChurchRolesController {
     return this.churchRolesService.update(+id, updateChurchRoleDto);
   }
 
+  @ApiDeleteChurchRole()
   @Delete(':id')
   async remove(@Param('id') id: string) {
     return this.churchRolesService.remove(+id);

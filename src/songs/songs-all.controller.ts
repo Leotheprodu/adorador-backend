@@ -16,7 +16,8 @@ import {
 import { SongsService } from './songs.service';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiGetAllSongs } from './songs.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
@@ -33,6 +34,7 @@ import { catchHandle } from 'src/chore/utils/catchHandle';
 export class SongsController {
   constructor(private readonly songsService: SongsService) {}
 
+  @ApiGetAllSongs()
   @Get()
   async findAllSongs(
     @Res() res: Response,

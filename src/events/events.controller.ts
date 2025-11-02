@@ -19,7 +19,17 @@ import {
 import { EventsService } from './events.service';
 import { CreateEventDto } from './dto/create-event.dto';
 import { UpdateEventDto } from './dto/update-event.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateEvent,
+  ApiGetAllEvents,
+  ApiGetEvent,
+  ApiUpdateEvent,
+  ApiDeleteEvent,
+  ApiAddSongsToEvent,
+  ApiRemoveSongsFromEvent,
+  ApiUpdateEventSongs,
+} from './events.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
@@ -46,7 +56,7 @@ export class EventsController {
     private readonly eventsGateway: EventsGateway,
   ) {}
 
-  @ApiOperation({ summary: 'Create Service' })
+  @ApiCreateEvent()
   @CheckLoginStatus('loggedIn')
   /* @CheckChurch({
     checkBy: 'paramBandId',
@@ -77,6 +87,7 @@ export class EventsController {
       catchHandle(e);
     }
   }
+  @ApiGetAllEvents()
   @Get()
   @CheckLoginStatus('loggedIn')
   /* @CheckChurch({
@@ -98,6 +109,7 @@ export class EventsController {
     }
   }
 
+  @ApiGetEvent()
   @Get(':id')
   @CheckLoginStatus('public')
   // Endpoint público - permite acceso con o sin autenticación
@@ -116,6 +128,7 @@ export class EventsController {
       catchHandle(e);
     }
   }
+  @ApiUpdateEvent()
   @CheckLoginStatus('loggedIn')
   /* @CheckChurch({
     checkBy: 'paramBandId',
@@ -158,6 +171,7 @@ export class EventsController {
       catchHandle(e);
     }
   }
+  @ApiDeleteEvent()
   @CheckLoginStatus('loggedIn')
   /* @CheckChurch({
     checkBy: 'paramBandId',
@@ -181,6 +195,7 @@ export class EventsController {
     }
   }
 
+  @ApiAddSongsToEvent()
   @Post(':id/songs')
   @CheckLoginStatus('loggedIn')
   /* @CheckChurch({

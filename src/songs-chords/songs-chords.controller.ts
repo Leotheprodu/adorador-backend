@@ -17,6 +17,13 @@ import { SongsChordsService } from './songs-chords.service';
 import { CreateSongsChordDto } from './dto/create-songs-chord.dto';
 import { UpdateSongsChordDto } from './dto/update-songs-chord.dto';
 import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateChord,
+  ApiGetAllChords,
+  ApiGetChord,
+  ApiUpdateChord,
+  ApiDeleteChord,
+} from './songs-chords.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { SongsService } from 'src/songs/songs.service';
 import {
@@ -42,6 +49,7 @@ export class SongsChordsController {
     private readonly songsService: SongsService,
   ) {}
 
+  @ApiCreateChord()
   @Post()
   async create(
     @Body() createSongsChordDto: CreateSongsChordDto,
@@ -79,6 +87,7 @@ export class SongsChordsController {
     }
   }
 
+  @ApiGetAllChords()
   @Get()
   async findAll(
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -97,6 +106,7 @@ export class SongsChordsController {
     }
   }
 
+  @ApiGetChord()
   @Get(':id')
   async findOne(
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -116,6 +126,7 @@ export class SongsChordsController {
     }
   }
 
+  @ApiUpdateChord()
   @Patch(':id')
   async update(
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -148,6 +159,7 @@ export class SongsChordsController {
     }
   }
 
+  @ApiDeleteChord()
   @Delete(':id')
   async remove(
     @Param('bandId', ParseIntPipe) bandId: number,

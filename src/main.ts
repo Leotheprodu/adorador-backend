@@ -16,8 +16,17 @@ async function bootstrap() {
   );
   const config = new DocumentBuilder()
     .setTitle('Adorador API')
-    .setDescription(' API para la aplicación de Adorador')
+    .setDescription(
+      'API REST para la gestión de bandas de adoración, eventos, canciones e iglesias',
+    )
     .setVersion('1.0')
+    .addBearerAuth()
+    .addTag('auth', 'Endpoints de autenticación y autorización')
+    .addTag('users', 'Gestión de usuarios')
+    .addTag('bands', 'Gestión de bandas de adoración')
+    .addTag('churches', 'Gestión de iglesias')
+    .addTag('Events of Bands', 'Gestión de eventos y servicios')
+    .addTag('songs', 'Catálogo de canciones')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
