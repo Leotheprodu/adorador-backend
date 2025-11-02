@@ -14,7 +14,13 @@ import {
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { ChurchesService } from './churches.service';
-import { ApiGetChurches } from './churches.swagger';
+import {
+  ApiGetChurches,
+  ApiCreateChurch,
+  ApiGetChurch,
+  ApiUpdateChurch,
+  ApiDeleteChurch,
+} from './churches.swagger';
 import { Response } from 'express';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { CreateChurchDto } from './dto/create-church.dto';
@@ -45,6 +51,7 @@ export class ChurchesController {
     }
   }
 
+  @ApiCreateChurch()
   @Post()
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)
@@ -60,6 +67,7 @@ export class ChurchesController {
     }
   }
 
+  @ApiGetChurch()
   @Get(':id')
   @CheckLoginStatus('loggedIn')
   async getChurch(@Res() res: Response, @Param('id', ParseIntPipe) id: number) {
@@ -74,6 +82,7 @@ export class ChurchesController {
     }
   }
 
+  @ApiUpdateChurch()
   @Patch(':id')
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)
@@ -93,6 +102,7 @@ export class ChurchesController {
     }
   }
 
+  @ApiDeleteChurch()
   @Delete(':id')
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)

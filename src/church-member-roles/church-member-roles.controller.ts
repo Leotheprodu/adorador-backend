@@ -15,7 +15,14 @@ import {
 import { ChurchMemberRolesService } from './church-member-roles.service';
 import { CreateChurchMemberRoleDto } from './dto/create-church-member-role.dto';
 import { UpdateChurchMemberRoleDto } from './dto/update-church-member-role.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateMembershipRole,
+  ApiGetAllMembershipRoles,
+  ApiGetMembershipRole,
+  ApiUpdateMembershipRole,
+  ApiDeleteMembershipRole,
+} from './church-member-roles.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
@@ -33,8 +40,8 @@ export class ChurchMemberRolesController {
     private readonly churchMemberRolesService: ChurchMemberRolesService,
   ) {}
 
+  @ApiCreateMembershipRole()
   @Post()
-  @ApiOperation({ summary: 'Create role in membership of user' })
   @CheckLoginStatus('loggedIn')
   @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   async create(
@@ -56,8 +63,8 @@ export class ChurchMemberRolesController {
     }
   }
 
+  @ApiGetAllMembershipRoles()
   @Get()
-  @ApiOperation({ summary: 'Get all roles in membership of user' })
   @CheckLoginStatus('loggedIn')
   @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')
@@ -77,8 +84,8 @@ export class ChurchMemberRolesController {
     }
   }
 
+  @ApiGetMembershipRole()
   @Get(':id')
-  @ApiOperation({ summary: 'Get role in membership of user by id' })
   @CheckLoginStatus('loggedIn')
   @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')
@@ -94,8 +101,8 @@ export class ChurchMemberRolesController {
     }
   }
 
+  @ApiUpdateMembershipRole()
   @Patch(':id')
-  @ApiOperation({ summary: 'Update role in membership of user by id' })
   @CheckLoginStatus('loggedIn')
   @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')
@@ -118,8 +125,8 @@ export class ChurchMemberRolesController {
     }
   }
 
+  @ApiDeleteMembershipRole()
   @Delete(':id')
-  @ApiOperation({ summary: 'Delete role in membership of user by id' })
   @CheckLoginStatus('loggedIn')
   @CheckChurch({ checkBy: 'paramMembershipId', key: 'membershipId' })
   @CheckUserId('userId')

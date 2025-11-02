@@ -19,6 +19,14 @@ import { SongsLyricsService } from './songs-lyrics.service';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
 import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
 import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiUploadLyricsFile,
+  ApiCreateLyric,
+  ApiGetAllLyrics,
+  ApiGetLyric,
+  ApiUpdateLyric,
+  ApiDeleteLyric,
+} from './songs-lyrics.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { Response } from 'express';
 import { GetUser } from 'src/auth/decorators/get-user.decorator';
@@ -42,6 +50,7 @@ export class SongsLyricsController {
     private readonly songsLyricsService: SongsLyricsService,
     private readonly songsService: SongsService,
   ) {}
+  @ApiUploadLyricsFile()
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   /* @CheckUserMemberOfBand({
@@ -73,6 +82,7 @@ export class SongsLyricsController {
     }
   }
 
+  @ApiCreateLyric()
   @Post()
   /* @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
@@ -117,6 +127,7 @@ export class SongsLyricsController {
     }
   }
 
+  @ApiGetAllLyrics()
   @Get()
   /* @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
@@ -138,6 +149,7 @@ export class SongsLyricsController {
     }
   }
 
+  @ApiGetLyric()
   @Get(':id')
   /* @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
@@ -160,6 +172,7 @@ export class SongsLyricsController {
     }
   }
 
+  @ApiUpdateLyric()
   @Patch(':id')
   /* @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
@@ -232,6 +245,7 @@ export class SongsLyricsController {
     }
   }
 
+  @ApiDeleteLyric()
   @Delete(':id')
   /* @CheckUserMemberOfBand({
     checkBy: 'paramBandId',

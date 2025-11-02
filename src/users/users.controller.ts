@@ -14,10 +14,19 @@ import {
 import { UsersService } from './users.service';
 import { Response } from 'express';
 import { CreateUserDto } from './dto/create-user.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
 import { EmailService } from 'src/email/email.service';
 import { catchHandle } from 'src/chore/utils/catchHandle';
+import {
+  ApiGetUsers,
+  ApiGetUser,
+  ApiCreateUser,
+  ApiDeleteUser,
+  ApiUpdateUser,
+  ApiAddUserRole,
+  ApiRemoveUserRole,
+} from './users.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import {
@@ -38,7 +47,7 @@ export class UsersController {
     private emailService: EmailService,
   ) {}
 
-  @ApiOperation({ summary: 'Get all users' })
+  @ApiGetUsers()
   @Get()
   @CheckLoginStatus('loggedIn')
   async getUsers(@Res() res: Response) {
@@ -57,7 +66,7 @@ export class UsersController {
     }
   }
 
-  @ApiOperation({ summary: 'Get user by id' })
+  @ApiGetUser()
   @Get(':id')
   @CheckLoginStatus('loggedIn')
   @CheckUserId('id')
@@ -73,7 +82,7 @@ export class UsersController {
       catchHandle(e);
     }
   }
-  @ApiOperation({ summary: 'Create user' })
+  @ApiCreateUser()
   @Post()
   @CheckLoginStatus('notLoggedIn')
   async createUser(@Res() res: Response, @Body() body: CreateUserDto) {
@@ -95,7 +104,7 @@ export class UsersController {
       }
     }
   }
-  @ApiOperation({ summary: 'Delete user by id' })
+  @ApiDeleteUser()
   @Delete(':id')
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)
@@ -111,7 +120,7 @@ export class UsersController {
     }
   }
 
-  @ApiOperation({ summary: 'Update user by id' })
+  @ApiUpdateUser()
   @Post(':id')
   @CheckLoginStatus('loggedIn')
   @CheckUserId('id')
@@ -128,7 +137,7 @@ export class UsersController {
     }
   }
 
-  @ApiOperation({ summary: 'Update role of user' })
+  @ApiAddUserRole()
   @Get('/add-role/:id/:roleId')
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)
@@ -144,7 +153,7 @@ export class UsersController {
       catchHandle(e);
     }
   }
-  @ApiOperation({ summary: 'Delete role of user' })
+  @ApiRemoveUserRole()
   @Get('/delete-role/:id/:roleId')
   @CheckLoginStatus('loggedIn')
   @AppRole(userRoles.admin.id)

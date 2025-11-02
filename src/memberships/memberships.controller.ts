@@ -17,8 +17,14 @@ import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
 import { catchHandle } from 'src/chore/utils/catchHandle';
 import { Response } from 'express';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
-import { ApiCreateMembership } from './memberships.swagger';
+import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateMembership,
+  ApiGetAllMemberships,
+  ApiGetMembership,
+  ApiUpdateMembership,
+  ApiDeleteMembership,
+} from './memberships.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
@@ -33,7 +39,7 @@ import { churchRoles } from 'config/constants';
 export class MembershipsController {
   constructor(private readonly membershipsService: MembershipsService) {}
 
-  @ApiOperation({ summary: 'Create membership' })
+  @ApiCreateMembership()
   @Post()
   @CheckLoginStatus('loggedIn')
   @CheckUserId('userId')
@@ -42,7 +48,6 @@ export class MembershipsController {
     key: 'churchId',
     churchRolesBypass: [churchRoles.pastor.id],
   })
-  @ApiCreateMembership()
   async create(
     @Res() res: Response,
     @Body() createMembershipDto: CreateMembershipDto,
@@ -64,7 +69,7 @@ export class MembershipsController {
       catchHandle(e);
     }
   }
-  @ApiOperation({ summary: 'Get all memberships of an User' })
+  @ApiGetAllMemberships()
   @Get()
   async findAll(
     @Res() res: Response,
@@ -81,7 +86,7 @@ export class MembershipsController {
     }
   }
 
-  @ApiOperation({ summary: 'Get membership by id' })
+  @ApiGetMembership()
   @Get(':id')
   @CheckLoginStatus('loggedIn')
   @CheckUserId('userId')
@@ -110,7 +115,7 @@ export class MembershipsController {
       catchHandle(e);
     }
   }
-  @ApiOperation({ summary: 'Update membership by id' })
+  @ApiUpdateMembership()
   @Patch(':id')
   @CheckLoginStatus('loggedIn')
   @CheckChurch({
@@ -140,7 +145,7 @@ export class MembershipsController {
       catchHandle(e);
     }
   }
-  @ApiOperation({ summary: 'Delete membership by id' })
+  @ApiDeleteMembership()
   @Delete(':id')
   @CheckLoginStatus('loggedIn')
   @CheckChurch({

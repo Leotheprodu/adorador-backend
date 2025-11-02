@@ -18,8 +18,12 @@ import { UsersService } from 'src/users/users.service';
 import {
   ApiLogin,
   ApiLogout,
-  ApiVerify,
-} from './decorators/swagger.decorators';
+  ApiVerifyEmail,
+  ApiCheckLoginStatus,
+  ApiRefreshToken,
+  ApiForgotPassword,
+  ApiNewPassword,
+} from './auth.swagger';
 import { EmailService } from 'src/email/email.service';
 import { userRoles } from 'config/constants';
 import { catchHandle } from 'src/chore/utils/catchHandle';
@@ -116,6 +120,7 @@ export class AuthController {
     }
   }
 
+  @ApiCheckLoginStatus()
   @Get('/check-login-status')
   @CheckLoginStatus('loggedIn')
   async checkLoginStatus(@Res() res: Response, @Req() req: Request) {
@@ -158,6 +163,7 @@ export class AuthController {
     }
   }
 
+  @ApiRefreshToken()
   @Post('/refresh')
   @CheckLoginStatus('public')
   async refreshToken(@Res() res: Response, @Body() body: RefreshTokenDto) {
@@ -245,7 +251,7 @@ export class AuthController {
     }
   }
 
-  @ApiVerify()
+  @ApiVerifyEmail()
   @Get('/verify-email/:token')
   @CheckLoginStatus('public')
   async verifyEmail(@Res() res: Response, @Param('token') token: string) {
@@ -278,6 +284,7 @@ export class AuthController {
     }
   }
 
+  @ApiForgotPassword()
   @Post('/forgot-password')
   @CheckLoginStatus('notLoggedIn')
   async forgotPassword(@Res() res: Response, @Body() body: ForgotPasswordDTO) {
@@ -292,6 +299,7 @@ export class AuthController {
       catchHandle(e);
     }
   }
+  @ApiNewPassword()
   @Post('/new-password')
   @CheckLoginStatus('notLoggedIn')
   async newPassword(@Res() res: Response, @Body() body: NewPaswordDTO) {

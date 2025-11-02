@@ -15,7 +15,14 @@ import {
 import { SongsService } from './songs.service';
 import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
-import { ApiOperation, ApiTags } from '@nestjs/swagger';
+import { ApiTags } from '@nestjs/swagger';
+import {
+  ApiCreateSong,
+  ApiGetSongsByBand,
+  ApiGetSong,
+  ApiUpdateSong,
+  ApiDeleteSong,
+} from './songs.swagger';
 import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
@@ -33,8 +40,8 @@ import { catchHandle } from 'src/chore/utils/catchHandle';
 export class SongsController {
   constructor(private readonly songsService: SongsService) {}
 
+  @ApiCreateSong()
   @Post()
-  @ApiOperation({ summary: 'Create Song' })
   @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
@@ -58,6 +65,7 @@ export class SongsController {
     }
   }
 
+  @ApiGetSongsByBand()
   @Get()
   async findAll(
     @Res() res: Response,
@@ -74,6 +82,7 @@ export class SongsController {
     }
   }
 
+  @ApiGetSong()
   @Get(':id')
   /* @CheckChurch({
     checkBy: 'paramBandId',
@@ -95,6 +104,7 @@ export class SongsController {
     }
   }
 
+  @ApiUpdateSong()
   @Patch(':id')
   /* @CheckChurch({
     checkBy: 'paramBandId',
@@ -121,6 +131,7 @@ export class SongsController {
     }
   }
 
+  @ApiDeleteSong()
   @Delete(':id')
   /* @CheckChurch({
     checkBy: 'paramBandId',
