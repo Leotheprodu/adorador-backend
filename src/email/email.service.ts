@@ -46,8 +46,8 @@ export class EmailService {
       const timeoutPromise = new Promise((_, reject) => {
         setTimeout(
           () => reject(new Error('Email timeout - servidor SMTP no responde')),
-          20000,
-        ); // 20 segundos
+          15000,
+        ); // 15 segundos - más rápido para prod
       });
 
       await Promise.race([sendPromise, timeoutPromise]);

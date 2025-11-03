@@ -11,22 +11,21 @@ import { TemporalTokenPoolModule } from 'src/temporal-token-pool/temporal-token-
     MailerModule.forRootAsync({
       useFactory: () => ({
         transport: {
-          host: process.env.EMAIL_HOST,
+          host: process.env.EMAIL_HOST || 'smtp.gmail.com',
           port: parseInt(process.env.EMAIL_PORT) || 587,
-          secure: process.env.EMAIL_SECURE === 'true' || false,
-          requireTLS: true,
+          secure: process.env.EMAIL_SECURE === 'true' || false, // true for 465, false for 587
           auth: {
             user: process.env.EMAIL_USERNAME,
             pass: process.env.EMAIL_PASSWORD,
           },
-          // Configuration for better compatibility
+          // Gmail specific optimizations
           tls: {
             rejectUnauthorized: false,
           },
-          // Connection timeouts
-          connectionTimeout: 20000, // 20 seconds
-          greetingTimeout: 15000, // 15 seconds
-          socketTimeout: 20000, // 20 seconds
+          // Optimized timeouts for cloud servers
+          connectionTimeout: 15000, // 15 seconds
+          greetingTimeout: 10000, // 10 seconds
+          socketTimeout: 15000, // 15 seconds
         },
         defaults: {
           from: process.env.EMAIL_USERNAME,
