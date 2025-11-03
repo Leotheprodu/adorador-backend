@@ -30,6 +30,10 @@ export class EmailService {
     context?: Record<string, any>;
   }): Promise<void> {
     try {
+      console.log(`[EMAIL] Sending email to: ${email}, subject: ${subject}`);
+      console.log(`[EMAIL] From: ${from || process.env.EMAIL_USERNAME}`);
+      console.log(`[EMAIL] Template: ${template}`);
+
       // Crear un timeout para evitar esperas largas
       const sendPromise = this.mailService.sendMail({
         to: email,
@@ -47,25 +51,46 @@ export class EmailService {
       });
 
       await Promise.race([sendPromise, timeoutPromise]);
+      console.log(`[EMAIL] Email sent successfully to: ${email}`);
     } catch (error) {
       // Log específico para diferentes tipos de errores
+      console.error(`[EMAIL] Error sending email to ${email}:`, {
+        message: error.message,
+        code: error.code,
+        response: error.response,
+        stack: error.stack?.split('\n')[0],
+      });
+
       if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
-        console.error(`Email timeout para ${email}: ${error.message}`);
+        console.error(`[EMAIL] Timeout para ${email}: ${error.message}`);
         throw new Error(
           'Servidor de correo no disponible temporalmente. Intenta de nuevo en unos minutos.',
         );
       } else if (error.code === 'ECONNREFUSED') {
-        console.error(`Conexión rechazada para ${email}: ${error.message}`);
+        console.error(
+          `[EMAIL] Conexión rechazada para ${email}: ${error.message}`,
+        );
         throw new Error('Servicio de correo temporalmente no disponible.');
+      } else if (error.code === 'EAUTH') {
+        console.error(
+          `[EMAIL] Error de autenticación para ${email}: ${error.message}`,
+        );
+        throw new Error('Error de autenticación del servidor de correo.');
+      } else if (error.responseCode) {
+        console.error(
+          `[EMAIL] SMTP Error ${error.responseCode} para ${email}: ${error.response}`,
+        );
+        throw new Error(`Error del servidor de correo: ${error.responseCode}`);
       } else {
-        console.error(`Error enviando correo a ${email}:`, error);
-        throw error;
+        console.error(`[EMAIL] Error desconocido para ${email}:`, error);
+        throw new Error('Error interno del servidor de correo.');
       }
     }
   }
   async sendEmailVerification(email: string) {
     let token: string;
     try {
+      console.log(`[EMAIL] Starting verification email for: ${email}`);
       token = crypto.randomBytes(32).toString('hex');
       const tempToken = await this.tempTokenPoolService.createToken(
         token,
@@ -75,6 +100,9 @@ export class EmailService {
       if (!tempToken) {
         throw new Error('Error creating token');
       } else {
+        console.log(
+          `[EMAIL] Token created, attempting to send email to: ${email}`,
+        );
         await this.sendEmail({
           email,
           subject: 'verifique su correo electronico',
@@ -84,8 +112,16 @@ export class EmailService {
             link: `${frontEndUrl}/auth/verify-email?token=${token}`,
           },
         });
+        console.log(
+          `[EMAIL] Verification email sent successfully to: ${email}`,
+        );
       }
     } catch (e) {
+      console.error(
+        `[EMAIL] Failed to send verification email to ${email}:`,
+        e.message,
+      );
+      console.error(`[EMAIL] Full error:`, e);
       // If email sending failed, clean up the token
       if (token) {
         try {
@@ -93,6 +129,7 @@ export class EmailService {
             email,
             'verify_email',
           );
+          console.log(`[EMAIL] Cleaned up token for: ${email}`);
         } catch (cleanupError) {
           console.error('Error cleaning up verification token:', cleanupError);
         }
