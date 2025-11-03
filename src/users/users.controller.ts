@@ -84,7 +84,7 @@ export class UsersController {
   }
   @ApiCreateUser()
   @Post()
-  @CheckLoginStatus('notLoggedIn')
+  @CheckLoginStatus('public')
   async createUser(@Res() res: Response, @Body() body: CreateUserDto) {
     try {
       const newUser = await this.usersService.createUser(body);
@@ -190,7 +190,7 @@ export class UsersController {
   }
 
   @Post('/resend-verification')
-  @CheckLoginStatus('notLoggedIn')
+  @CheckLoginStatus('public')
   async resendVerification(
     @Res() res: Response,
     @Body() body: { email: string },
