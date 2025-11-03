@@ -326,6 +326,7 @@ export class AuthController {
   }
 
   @Get('/email-service-status')
+  @CheckLoginStatus('public')
   async checkEmailServiceStatus(@Res() res: Response) {
     try {
       // Test básico de conectividad SMTP
@@ -349,6 +350,7 @@ export class AuthController {
   }
 
   @Get('/admin/test-smtp')
+  @CheckLoginStatus('public')
   async testSmtpConnection(@Res() res: Response) {
     try {
       const config = {
