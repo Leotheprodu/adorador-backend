@@ -30,15 +30,37 @@ export class EmailService {
     context?: Record<string, any>;
   }): Promise<void> {
     try {
-      await this.mailService.sendMail({
+      // Crear un timeout para evitar esperas largas
+      const sendPromise = this.mailService.sendMail({
         to: email,
         from,
         subject,
         template,
         context,
       });
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(
+          () => reject(new Error('Email timeout - servidor SMTP no responde')),
+          30000,
+        ); // 30 segundos
+      });
+
+      await Promise.race([sendPromise, timeoutPromise]);
     } catch (error) {
-      catchHandle(error);
+      // Log específico para diferentes tipos de errores
+      if (error.message?.includes('timeout') || error.code === 'ETIMEDOUT') {
+        console.error(`Email timeout para ${email}: ${error.message}`);
+        throw new Error(
+          'Servidor de correo no disponible temporalmente. Intenta de nuevo en unos minutos.',
+        );
+      } else if (error.code === 'ECONNREFUSED') {
+        console.error(`Conexión rechazada para ${email}: ${error.message}`);
+        throw new Error('Servicio de correo temporalmente no disponible.');
+      } else {
+        console.error(`Error enviando correo a ${email}:`, error);
+        throw error;
+      }
     }
   }
   async sendEmailVerification(email: string) {
@@ -67,17 +89,24 @@ export class EmailService {
     }
   }
   async sendForgotPasswordEmail(email: string) {
+    let tokenCreated = false;
+    let token: string;
+
     try {
-      const token = crypto.randomBytes(32).toString('hex');
+      token = crypto.randomBytes(32).toString('hex');
       const tempToken = await this.tempTokenPoolService.createToken(
         token,
         email,
         'forgot_password',
       );
+      tokenCreated = true;
+
       if (!tempToken) {
         throw new Error('Error creating token');
       }
-      this.sendEmail({
+
+      // Intentar enviar el correo con timeout más corto
+      await this.sendEmail({
         email,
         subject: 'Restablecer contraseña',
         from: `"Adorador" <${process.env.EMAIL_USERNAME}>`,
@@ -87,6 +116,20 @@ export class EmailService {
         },
       });
     } catch (e) {
+      // Si el correo falló después de crear el token, limpiar el token
+      if (tokenCreated && token) {
+        try {
+          await this.tempTokenPoolService.removeTokenFromGlobalPool(
+            email,
+            'forgot_password',
+          );
+        } catch (cleanupError) {
+          console.error(
+            'Error limpiando token tras falla de correo:',
+            cleanupError,
+          );
+        }
+      }
       catchHandle(e);
     }
   }
@@ -172,6 +215,37 @@ export class EmailService {
           'content-type': 'application/json',
         },
       });
+    }
+  }
+
+  // Método para probar la conectividad del servicio de correo
+  async testEmailService(): Promise<boolean> {
+    try {
+      // Crear una promesa de timeout para el test
+      const testPromise = this.mailService.sendMail({
+        to: 'test-connectivity@example.com',
+        from: `"Adorador Test" <${process.env.EMAIL_USERNAME}>`,
+        subject: 'Connectivity Test',
+        text: 'This is a connectivity test',
+      });
+
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Test timeout')), 10000); // 10 segundos para el test
+      });
+
+      await Promise.race([testPromise, timeoutPromise]);
+      return true;
+    } catch (error) {
+      // Si el error es de conectividad, el servicio no está disponible
+      if (
+        error.code === 'ETIMEDOUT' ||
+        error.code === 'ECONNREFUSED' ||
+        error.message?.includes('timeout')
+      ) {
+        return false;
+      }
+      // Otros errores (como email inválido) significan que el servicio responde
+      return true;
     }
   }
 }

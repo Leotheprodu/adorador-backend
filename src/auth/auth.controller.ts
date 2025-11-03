@@ -293,12 +293,90 @@ export class AuthController {
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
+
       await this.emailService.sendForgotPasswordEmail(user.email);
-      res.status(HttpStatus.ACCEPTED).send({ status: 'success' });
+
+      res.status(HttpStatus.ACCEPTED).send({
+        status: 'success',
+        message:
+          'Se ha enviado un correo con las instrucciones para restablecer tu contraseña. Revisa tu bandeja de entrada y spam.',
+      });
+    } catch (e) {
+      // Personalizar mensajes de error para usuarios
+      if (e.response?.includes('Ya se envió un correo')) {
+        res.status(HttpStatus.TOO_MANY_REQUESTS).send({
+          status: 'error',
+          message: e.response,
+        });
+        return;
+      } else if (
+        e.message?.includes('Servidor de correo') ||
+        e.message?.includes('temporalmente no disponible')
+      ) {
+        res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+          status: 'error',
+          message:
+            'El servicio de correo está temporalmente no disponible. Por favor intenta de nuevo en unos minutos.',
+        });
+        return;
+      }
+
+      catchHandle(e);
+    }
+  }
+
+  @Get('/email-service-status')
+  async checkEmailServiceStatus(@Res() res: Response) {
+    try {
+      // Test básico de conectividad SMTP
+      const testResult = await this.emailService.testEmailService();
+      const tokenStats = this.temporalTokenPoolService.getPoolStats();
+
+      res.status(HttpStatus.OK).send({
+        status: 'success',
+        emailService: testResult ? 'available' : 'unavailable',
+        tokenPool: tokenStats,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+        status: 'error',
+        emailService: 'unavailable',
+        error: e.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
+  @Post('/admin/clear-reset-tokens')
+  async clearResetTokens(
+    @Res() res: Response,
+    @Body() body: { email?: string },
+  ) {
+    try {
+      if (body.email) {
+        // Limpiar tokens de un email específico
+        await this.temporalTokenPoolService.removeTokenFromGlobalPool(
+          body.email,
+          'forgot_password',
+        );
+        res.status(HttpStatus.OK).send({
+          status: 'success',
+          message: `Tokens de recuperación limpiados para ${body.email}`,
+        });
+      } else {
+        // Limpiar todos los tokens expirados
+        this.temporalTokenPoolService.cleanExpiredGlobalTokens();
+        res.status(HttpStatus.OK).send({
+          status: 'success',
+          message: 'Todos los tokens expirados han sido limpiados',
+        });
+      }
     } catch (e) {
       catchHandle(e);
     }
   }
+
   @ApiNewPassword()
   @Post('/new-password')
   @CheckLoginStatus('notLoggedIn')
