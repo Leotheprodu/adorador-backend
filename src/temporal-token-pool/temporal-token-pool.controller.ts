@@ -11,8 +11,9 @@ class VerifyWhatsAppTokenDto {
 
   @IsString()
   @IsNotEmpty()
-  @Matches(/^\+?[1-9]\d{1,14}$/, {
-    message: 'El número de teléfono debe ser válido (formato internacional)',
+  @Matches(/^\+?[1-9]\d{7,14}$/, {
+    message:
+      'El número de teléfono debe ser válido (formato: +codigoPais + número, ej: +50677778888)',
   })
   phoneNumber: string;
 }
@@ -44,9 +45,33 @@ export class TemporalTokenPoolController {
     description: 'Token no encontrado o expirado',
   })
   async verifyWhatsAppToken(@Body() body: VerifyWhatsAppTokenDto) {
-    return await this.temporalTokenPoolService.verifyWhatsAppToken(
-      body.token,
-      body.phoneNumber,
-    );
+    try {
+      console.log('[WHATSAPP] Verificación iniciada:', {
+        token: body.token?.substring(0, 8) + '...',
+        phone: body.phoneNumber,
+      });
+
+      const result = await this.temporalTokenPoolService.verifyWhatsAppToken(
+        body.token,
+        body.phoneNumber,
+      );
+
+      console.log('[WHATSAPP] Verificación exitosa:', result);
+      return result;
+    } catch (error) {
+      console.error('[WHATSAPP] Error en verificación:', error);
+      throw error;
+    }
+  }
+
+  @Post('verify-whatsapp-token')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verificar token de WhatsApp (endpoint alternativo)',
+    description:
+      'Endpoint alternativo con nombre más específico para verificar tokens',
+  })
+  async verifyWhatsAppTokenAlt(@Body() body: VerifyWhatsAppTokenDto) {
+    return this.verifyWhatsAppToken(body);
   }
 }

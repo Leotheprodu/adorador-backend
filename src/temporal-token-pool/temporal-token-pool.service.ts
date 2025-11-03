@@ -145,14 +145,40 @@ export class TemporalTokenPoolService implements OnModuleInit {
 
   // Método para verificar token por WhatsApp
   async verifyWhatsAppToken(token: string, phoneNumber: string) {
+    console.log('[WHATSAPP-SERVICE] Iniciando verificación:', {
+      token: token?.substring(0, 8) + '...',
+      phone: phoneNumber,
+    });
+
     try {
+      // Validar entrada
+      if (!token || !phoneNumber) {
+        console.log('[WHATSAPP-SERVICE] Datos faltantes');
+        throw new HttpException(
+          'Token y número de teléfono son requeridos',
+          400,
+        );
+      }
+
+      // Normalizar número de teléfono (agregar + si no lo tiene)
+      const normalizedPhone = phoneNumber.startsWith('+')
+        ? phoneNumber
+        : `+${phoneNumber}`;
+      console.log('[WHATSAPP-SERVICE] Número normalizado:', normalizedPhone);
+
       const tokenData = await this.findToken(token);
+      console.log('[WHATSAPP-SERVICE] Token encontrado:', !!tokenData);
 
       if (!tokenData) {
         throw new HttpException('Token no encontrado o expirado', 404);
       }
 
-      if (tokenData.userPhone !== phoneNumber) {
+      console.log('[WHATSAPP-SERVICE] Comparando teléfonos:', {
+        tokenPhone: tokenData.userPhone,
+        requestPhone: normalizedPhone,
+      });
+
+      if (tokenData.userPhone !== normalizedPhone) {
         throw new HttpException(
           'El número de teléfono no coincide con el token',
           400,
@@ -160,23 +186,45 @@ export class TemporalTokenPoolService implements OnModuleInit {
       }
 
       if (tokenData.type !== 'verify_phone') {
+        console.log(
+          '[WHATSAPP-SERVICE] Tipo de token inválido:',
+          tokenData.type,
+        );
         throw new HttpException('Tipo de token inválido', 400);
       }
 
+      console.log('[WHATSAPP-SERVICE] Activando usuario...');
       // Activar al usuario
-      await this.prisma.users.update({
-        where: { phone: phoneNumber },
+      const updatedUser = await this.prisma.users.update({
+        where: { phone: normalizedPhone },
         data: { status: 'active' },
       });
 
+      console.log('[WHATSAPP-SERVICE] Usuario activado:', updatedUser.id);
+
       // Eliminar el token
       await this.deleteToken(token);
+      console.log('[WHATSAPP-SERVICE] Token eliminado');
 
-      return { success: true, message: 'Cuenta verificada exitosamente' };
+      return {
+        success: true,
+        message: 'Cuenta verificada exitosamente',
+        user: {
+          id: updatedUser.id,
+          name: updatedUser.name,
+          phone: updatedUser.phone,
+        },
+      };
     } catch (error) {
+      console.error('[WHATSAPP-SERVICE] Error:', error);
+
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
       throw new HttpException(
-        error.message || 'Error al verificar token',
-        error.status || 500,
+        'Error interno del servidor al verificar token',
+        500,
       );
     }
   }
