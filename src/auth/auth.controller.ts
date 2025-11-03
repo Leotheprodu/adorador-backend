@@ -348,6 +348,42 @@ export class AuthController {
     }
   }
 
+  @Get('/admin/test-smtp')
+  async testSmtpConnection(@Res() res: Response) {
+    try {
+      const config = {
+        host: process.env.EMAIL_HOST,
+        port: process.env.EMAIL_PORT,
+        username: process.env.EMAIL_USERNAME,
+        secure: process.env.EMAIL_SECURE,
+      };
+
+      // Test de conectividad SMTP real
+      const testResult = await this.emailService.testEmailService();
+
+      res.status(HttpStatus.OK).send({
+        status: 'success',
+        config: config, // Para debugging (no incluye password)
+        connectivity: testResult
+          ? 'SMTP connection OK'
+          : 'SMTP connection failed',
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+        status: 'error',
+        config: {
+          host: process.env.EMAIL_HOST,
+          port: process.env.EMAIL_PORT,
+          username: process.env.EMAIL_USERNAME,
+          secure: process.env.EMAIL_SECURE,
+        },
+        error: e.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   @Post('/admin/clear-reset-tokens')
   async clearResetTokens(
     @Res() res: Response,
