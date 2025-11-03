@@ -8,6 +8,21 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  // Middleware para logging de requests (solo en producción para debugging)
+  if (process.env.NODE_ENV === 'production') {
+    app.use((req, res, next) => {
+      if (req.path.includes('verify-whatsapp')) {
+        console.log(`[REQUEST] ${req.method} ${req.path}`, {
+          headers: req.headers,
+          body: req.body
+            ? JSON.stringify(req.body).substring(0, 200)
+            : 'No body',
+        });
+      }
+      next();
+    });
+  }
+
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,
@@ -30,6 +45,14 @@ async function bootstrap() {
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
+
+  // Middleware global para manejar request aborted
+  app.use((req, res, next) => {
+    req.on('aborted', () => {
+      console.log(`[ABORTED] Request aborted: ${req.method} ${req.path}`);
+    });
+    next();
+  });
 
   app.enableCors({
     origin: corsLink,
