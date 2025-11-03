@@ -18,8 +18,8 @@ datasource db {
 model Users {
   id        Int          @id @default(autoincrement())
   name      String
-  email     String       @unique
-  phone     String?      @unique
+  email     String?      
+  phone     String       @unique // Ahora es requerido y único para autenticación
   password  String
   refreshToken String?   @db.Text
   birthdate DateTime?
@@ -45,8 +45,8 @@ model Roles {
 model Temporal_token_pool {
   id             Int      @id @default(autoincrement())
   token          String   @unique
-  userEmail      String
-  user           Users    @relation(fields: [userEmail], references: [email])
+  userPhone      String   // Cambio de userEmail a userPhone
+  user           Users    @relation(fields: [userPhone], references: [phone])
   type           String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
