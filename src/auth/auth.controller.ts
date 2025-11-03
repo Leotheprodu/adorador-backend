@@ -386,6 +386,38 @@ export class AuthController {
     }
   }
 
+  @Post('/admin/test-email')
+  @CheckLoginStatus('public')
+  async testEmailSend(@Res() res: Response, @Body() body: { email: string }) {
+    try {
+      console.log(`[TEST] Testing email send to: ${body.email}`);
+
+      await this.emailService.sendEmail({
+        email: body.email,
+        subject: 'Test Email - Adorador',
+        from: `"Adorador Test" <${process.env.EMAIL_USERNAME}>`,
+        template: 'user-sign_up', // Usar template existente
+        context: {
+          link: 'https://adorador.xyz/test',
+        },
+      });
+
+      res.status(HttpStatus.OK).send({
+        status: 'success',
+        message: `Email de prueba enviado exitosamente a ${body.email}`,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error('[TEST] Error sending test email:', e);
+      res.status(HttpStatus.SERVICE_UNAVAILABLE).send({
+        status: 'error',
+        message: `Failed to send test email: ${e.message}`,
+        error: e.message,
+        timestamp: new Date().toISOString(),
+      });
+    }
+  }
+
   @Post('/admin/clear-reset-tokens')
   async clearResetTokens(
     @Res() res: Response,
