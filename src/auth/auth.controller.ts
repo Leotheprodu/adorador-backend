@@ -360,11 +360,13 @@ export class AuthController {
 
       // Test de conectividad SMTP real
       const testResult = await this.emailService.testEmailService();
-      
+
       res.status(HttpStatus.OK).send({
         status: 'success',
         config: config, // Para debugging (no incluye password)
-        connectivity: testResult ? 'SMTP connection OK' : 'SMTP connection failed',
+        connectivity: testResult
+          ? 'SMTP connection OK'
+          : 'SMTP connection failed',
         timestamp: new Date().toISOString(),
       });
     } catch (e) {
