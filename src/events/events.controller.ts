@@ -330,12 +330,27 @@ export class EventsController {
       const eventName = `eventSelectedSong-${id}`;
 
       if (bandMember) {
+        // CRITICAL: Actualizar el caché del event manager
+        this.eventsGateway.changeEventManager(id, user.sub);
+
         const lastMessage = this.eventsGateway.getLastMessage(eventName);
-        // Note: With JWT, the user info will be updated on next token refresh
+
+        // Notificar cambio de event manager a todos los usuarios conectados
+        const eventManagerChangeEvent = `eventManagerChanged-${id}`;
+        this.eventsGateway.server.emit(eventManagerChangeEvent, {
+          newEventManagerId: user.sub,
+          newEventManagerName: userName,
+          eventId: id,
+          bandId: bandId,
+          timestamp: new Date().toISOString(),
+        });
+
+        // También mantener la notificación original por compatibilidad
         this.eventsGateway.server.emit(eventName, {
           message: lastMessage,
           eventAdmin: userName,
         });
+
         res
           .status(HttpStatus.OK)
           .send({ message: 'Event manager changed', eventManager: userName });
