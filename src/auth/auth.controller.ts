@@ -277,7 +277,15 @@ export class AuthController {
       }
 
       await this.usersService.addRole(user.id, userRoles.user.id);
-      await this.emailService.subscribeToNewsLetter(user.email);
+      // Solo suscribir a newsletter si el usuario tiene email
+      if (user.email) {
+        try {
+          await this.emailService.subscribeToNewsLetter(user.email);
+        } catch (error) {
+          console.log('Error subscribing to newsletter:', error);
+          // No fallar la verificación por error de newsletter
+        }
+      }
       res.status(HttpStatus.OK).send({ status: 'active' });
     } catch (e) {
       catchHandle(e);
