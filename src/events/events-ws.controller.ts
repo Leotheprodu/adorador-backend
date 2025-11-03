@@ -59,7 +59,10 @@ export class EventsGatewayController {
         });
         res.status(HttpStatus.ACCEPTED).send({ status: 'success' });
       } else {
-        throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+        throw new HttpException(
+          'Insufficient permissions to manage this event',
+          HttpStatus.FORBIDDEN,
+        );
       }
     } catch (e) {
       catchHandle(e);
@@ -94,7 +97,10 @@ export class EventsGatewayController {
         });
         res.status(HttpStatus.ACCEPTED).send({ status: 'success' });
       } else {
-        throw new HttpException('Unauthorized', HttpStatus.UNAUTHORIZED);
+        throw new HttpException(
+          'Insufficient permissions to manage this event',
+          HttpStatus.FORBIDDEN,
+        );
       }
     } catch (e) {
       catchHandle(e);

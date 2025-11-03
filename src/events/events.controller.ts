@@ -223,6 +223,17 @@ export class EventsController {
           HttpStatus.BAD_REQUEST,
         );
       }
+
+      // Notificar cambios en el evento a todos los usuarios conectados
+      const eventUpdateEvent = `eventSongsUpdated-${id}`;
+      this.eventsGateway.server.emit(eventUpdateEvent, {
+        eventId: id,
+        bandId: bandId,
+        changeType: 'songs_added',
+        timestamp: new Date().toISOString(),
+        message: 'Se agregaron nuevas canciones al evento',
+      });
+
       res.status(HttpStatus.OK).send(event);
     } catch (e) {
       catchHandle(e);
@@ -245,6 +256,17 @@ export class EventsController {
       console.log(songs);
       const event = await this.eventsService.deleteSongsFromEvent(id, songs);
       console.log(event);
+
+      // Notificar cambios en el evento a todos los usuarios conectados
+      const eventUpdateEvent = `eventSongsUpdated-${id}`;
+      this.eventsGateway.server.emit(eventUpdateEvent, {
+        eventId: id,
+        bandId: bandId,
+        changeType: 'songs_removed',
+        timestamp: new Date().toISOString(),
+        message: 'Se eliminaron canciones del evento',
+      });
+
       res.status(HttpStatus.OK).send({ message: 'Songs removed from event' });
     } catch (e) {
       catchHandle(e);
@@ -275,6 +297,18 @@ export class EventsController {
           HttpStatus.BAD_REQUEST,
         );
       } */
+
+      // Notificar cambios en el evento a todos los usuarios conectados
+      const eventUpdateEvent = `eventSongsUpdated-${id}`;
+      this.eventsGateway.server.emit(eventUpdateEvent, {
+        eventId: id,
+        bandId: bandId,
+        changeType: 'songs_updated',
+        timestamp: new Date().toISOString(),
+        message:
+          'Se actualizaron las canciones del evento (escalas, orden, etc.)',
+      });
+
       res.status(HttpStatus.OK).send({ message: 'Songs updated' });
     } catch (e) {
       catchHandle(e);
@@ -330,12 +364,27 @@ export class EventsController {
       const eventName = `eventSelectedSong-${id}`;
 
       if (bandMember) {
+        // CRITICAL: Actualizar el caché del event manager
+        this.eventsGateway.changeEventManager(id, user.sub);
+
         const lastMessage = this.eventsGateway.getLastMessage(eventName);
-        // Note: With JWT, the user info will be updated on next token refresh
+
+        // Notificar cambio de event manager a todos los usuarios conectados
+        const eventManagerChangeEvent = `eventManagerChanged-${id}`;
+        this.eventsGateway.server.emit(eventManagerChangeEvent, {
+          newEventManagerId: user.sub,
+          newEventManagerName: userName,
+          eventId: id,
+          bandId: bandId,
+          timestamp: new Date().toISOString(),
+        });
+
+        // También mantener la notificación original por compatibilidad
         this.eventsGateway.server.emit(eventName, {
           message: lastMessage,
           eventAdmin: userName,
         });
+
         res
           .status(HttpStatus.OK)
           .send({ message: 'Event manager changed', eventManager: userName });
