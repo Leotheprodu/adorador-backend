@@ -24,9 +24,9 @@ import { TemporalTokenPoolModule } from 'src/temporal-token-pool/temporal-token-
             rejectUnauthorized: false,
           },
           // Connection timeouts
-          connectionTimeout: 60000, // 60 seconds
-          greetingTimeout: 30000, // 30 seconds
-          socketTimeout: 60000, // 60 seconds
+          connectionTimeout: 20000, // 20 seconds
+          greetingTimeout: 15000, // 15 seconds
+          socketTimeout: 20000, // 20 seconds
         },
         defaults: {
           from: process.env.EMAIL_USERNAME,
