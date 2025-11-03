@@ -2,9 +2,15 @@ import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { PrismaService } from 'src/prisma.service';
 import { passwordEncrypt } from './utils/handlePassword';
+import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
+import * as crypto from 'crypto';
+
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private temporalTokenService: TemporalTokenPoolService,
+  ) {}
 
   async getUsers() {
     return await this.prisma.users.findMany({
@@ -57,14 +63,34 @@ export class UsersService {
   }
   async createUser(user: CreateUserDto) {
     const password = await passwordEncrypt(user.password);
-    return this.prisma.users.create({
-      data: { ...user, password },
+
+    // Crear el usuario con status inactive por defecto
+    const newUser = await this.prisma.users.create({
+      data: {
+        ...user,
+        password,
+        status: 'inactive', // Los usuarios empiezan inactivos hasta verificar WhatsApp
+      },
       omit: {
         password: true,
         createdAt: true,
         updatedAt: true,
       },
     });
+
+    // Generar token de verificación
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    await this.temporalTokenService.createToken(
+      verificationToken,
+      user.phone,
+      'verify_phone',
+    );
+
+    return {
+      ...newUser,
+      verificationToken,
+      message: 'Usuario creado. Verificación de WhatsApp requerida.',
+    };
   }
 
   async getUser(id: number) {
@@ -138,29 +164,31 @@ export class UsersService {
     });
   }
 
-  async activateUserByEmail(email: string) {
+  async activateUserByPhone(phone: string) {
     return await this.prisma.users.update({
-      where: { email },
+      where: { phone },
       data: { status: 'active' },
     });
   }
 
-  async findByEmail(email: string) {
+  async findByPhone(phone: string) {
     return await this.prisma.users.findUnique({
       where: {
-        email,
+        phone,
       },
       select: {
         id: true,
+        phone: true,
         email: true,
         status: true,
       },
     });
   }
-  async updatePassword(email: string, password: string) {
+
+  async updatePassword(phone: string, password: string) {
     const newPassword = await passwordEncrypt(password);
     return await this.prisma.users.update({
-      where: { email },
+      where: { phone },
       data: { password: newPassword },
     });
   }

@@ -261,8 +261,8 @@ export class AuthController {
       if (!temporalTokenData) {
         throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
       }
-      const user = await this.usersService.activateUserByEmail(
-        temporalTokenData.userEmail,
+      const user = await this.usersService.activateUserByPhone(
+        temporalTokenData.userPhone,
       );
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
@@ -289,17 +289,26 @@ export class AuthController {
   @CheckLoginStatus('notLoggedIn')
   async forgotPassword(@Res() res: Response, @Body() body: ForgotPasswordDTO) {
     try {
-      const user = await this.usersService.findByEmail(body.email);
+      const user = await this.usersService.findByPhone(body.phone);
       if (!user) {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
 
-      await this.emailService.sendForgotPasswordEmail(user.email);
+      // TODO: En lugar de email, implementar envío por WhatsApp o SMS
+      // Por ahora, generamos token para reset pero sin envío automático
+      const resetToken = require('crypto').randomBytes(32).toString('hex');
+      await this.temporalTokenPoolService.createToken(
+        resetToken,
+        user.phone,
+        'forgot_password',
+      );
 
       res.status(HttpStatus.ACCEPTED).send({
         status: 'success',
+        resetToken, // Devolver el token para que el frontend pueda mostrarlo
+        phone: user.phone,
         message:
-          'Se ha enviado un correo con las instrucciones para restablecer tu contraseña. Revisa tu bandeja de entrada y spam.',
+          'Token de restablecimiento generado. Contacta al soporte para restablecer tu contraseña.',
       });
     } catch (e) {
       // Personalizar mensajes de error para usuarios
@@ -457,7 +466,7 @@ export class AuthController {
         throw new HttpException('Invalid token', HttpStatus.UNAUTHORIZED);
       }
       await this.usersService.updatePassword(
-        tempTokenInfo.userEmail,
+        tempTokenInfo.userPhone,
         body.password,
       );
       if (!tempTokenInfo) {

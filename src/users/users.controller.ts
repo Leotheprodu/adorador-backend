@@ -87,36 +87,29 @@ export class UsersController {
   @CheckLoginStatus('public')
   async createUser(@Res() res: Response, @Body() body: CreateUserDto) {
     try {
-      const newUser = await this.usersService.createUser(body);
+      const result = await this.usersService.createUser(body);
 
-      // Try to send email verification, but don't fail the user creation if it fails
-      if (newUser.id >= 1) {
-        try {
-          await this.emailService.sendEmailVerification(newUser.email);
-          res.status(HttpStatus.CREATED).send({
-            ...newUser,
-            emailSent: true,
-            message:
-              'Usuario creado exitosamente. Revisa tu correo para verificar tu cuenta.',
-          });
-        } catch (emailError) {
-          console.error('Failed to send verification email:', emailError);
-          // User was created successfully, but email failed
-          res.status(HttpStatus.CREATED).send({
-            ...newUser,
-            emailSent: false,
-            message:
-              'Usuario creado exitosamente, pero no se pudo enviar el correo de verificación. Puedes solicitar un nuevo correo de verificación más tarde.',
-          });
-        }
-      } else {
-        res.status(HttpStatus.CREATED).send(newUser);
-      }
+      // El usuario se crea exitosamente con token de verificación para WhatsApp
+      res.status(HttpStatus.CREATED).send({
+        user: {
+          id: result.id,
+          name: result.name,
+          phone: result.phone,
+          email: result.email,
+          status: result.status,
+        },
+        verificationToken: result.verificationToken,
+        whatsappMessage: `Para verificar tu cuenta en Adorador, envía este mensaje a WhatsApp: "registro-adorador:${result.verificationToken}"`,
+        message: result.message,
+      });
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         // The .code property can be accessed in a type-safe manner
         if (e.code === 'P2002') {
-          throw new HttpException('Email already exists', HttpStatus.CONFLICT);
+          throw new HttpException(
+            'Número de teléfono ya existe',
+            HttpStatus.CONFLICT,
+          );
         }
       } else {
         catchHandle(e);
@@ -193,35 +186,38 @@ export class UsersController {
   @CheckLoginStatus('public')
   async resendVerification(
     @Res() res: Response,
-    @Body() body: { email: string },
+    @Body() body: { phone: string },
   ) {
     try {
       // Check if user exists and is not verified
-      const user = await this.usersService.findByEmail(body.email);
+      const user = await this.usersService.findByPhone(body.phone);
       if (!user) {
         throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
       }
 
       if (user.status === 'active') {
         throw new HttpException(
-          'Email ya está verificado',
+          'Número de WhatsApp ya está verificado',
           HttpStatus.BAD_REQUEST,
         );
       }
 
-      try {
-        await this.emailService.sendEmailVerification(user.email);
-        res.send({
-          success: true,
-          message: 'Correo de verificación enviado exitosamente.',
-        });
-      } catch (emailError) {
-        console.error('Failed to resend verification email:', emailError);
-        throw new HttpException(
-          'No se pudo enviar el correo de verificación. Intenta de nuevo en unos minutos.',
-          HttpStatus.SERVICE_UNAVAILABLE,
-        );
-      }
+      // Generar nuevo token de verificación para WhatsApp
+      const verificationToken = require('crypto')
+        .randomBytes(32)
+        .toString('hex');
+      await this.usersService['temporalTokenService'].createToken(
+        verificationToken,
+        user.phone,
+        'verify_phone',
+      );
+
+      res.send({
+        success: true,
+        verificationToken,
+        whatsappMessage: `Para verificar tu cuenta en Adorador, envía este mensaje a WhatsApp: "registro-adorador:${verificationToken}"`,
+        message: 'Token de verificación de WhatsApp generado exitosamente.',
+      });
     } catch (e) {
       if (e instanceof HttpException) {
         throw e;

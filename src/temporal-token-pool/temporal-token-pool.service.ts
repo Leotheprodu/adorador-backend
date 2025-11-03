@@ -5,7 +5,7 @@ import * as crypto from 'crypto';
 
 interface TokenInfo {
   token: string;
-  email: string;
+  phone: string; // Cambio de email a phone
   type: string;
   date: Date;
 }
@@ -60,8 +60,8 @@ export class TemporalTokenPoolService implements OnModuleInit {
     }
   }
 
-  async createToken(token: string, userEmail: string, type: string) {
-    if (type === 'forgot_password') {
+  async createToken(token: string, userPhone: string, type: string) {
+    if (type === 'forgot_password' || type === 'verify_phone') {
       // Limpiar tokens expirados antes de verificar
       this.cleanExpiredGlobalTokens();
 
@@ -70,7 +70,7 @@ export class TemporalTokenPoolService implements OnModuleInit {
       let existingToken = false;
 
       this.globalTokens.forEach((tokenInfo) => {
-        if (tokenInfo.email === userEmail && tokenInfo.type === type) {
+        if (tokenInfo.phone === userPhone && tokenInfo.type === type) {
           const tokenAge = now.getTime() - tokenInfo.date.getTime();
           // Solo bloquear si el token tiene menos de 5 minutos (evitar spam)
           if (tokenAge < 5 * 60 * 1000) {
@@ -85,20 +85,20 @@ export class TemporalTokenPoolService implements OnModuleInit {
 
       if (existingToken) {
         throw new HttpException(
-          'Ya se envió un correo de recuperación recientemente. Espera 5 minutos antes de intentar de nuevo.',
+          'Ya se envió una verificación recientemente. Espera 5 minutos antes de intentar de nuevo.',
           400,
         );
       }
 
       this.globalTokens.add({
         token,
-        email: userEmail,
+        phone: userPhone,
         type,
         date: new Date(),
       });
     }
     return await this.prisma.temporal_token_pool.create({
-      data: { token, userEmail, type },
+      data: { token, userPhone, type },
     });
   }
 
@@ -121,10 +121,10 @@ export class TemporalTokenPoolService implements OnModuleInit {
     });
   }
 
-  // Método para limpiar tokens del pool global cuando falla el envío de correo
-  async removeTokenFromGlobalPool(email: string, type: string) {
+  // Método para limpiar tokens del pool global cuando falla el envío de WhatsApp
+  async removeTokenFromGlobalPool(phone: string, type: string) {
     this.globalTokens.forEach((tokenInfo) => {
-      if (tokenInfo.email === email && tokenInfo.type === type) {
+      if (tokenInfo.phone === phone && tokenInfo.type === type) {
         this.globalTokens.delete(tokenInfo);
       }
     });
@@ -143,19 +143,57 @@ export class TemporalTokenPoolService implements OnModuleInit {
     });
   }
 
+  // Método para verificar token por WhatsApp
+  async verifyWhatsAppToken(token: string, phoneNumber: string) {
+    try {
+      const tokenData = await this.findToken(token);
+
+      if (!tokenData) {
+        throw new HttpException('Token no encontrado o expirado', 404);
+      }
+
+      if (tokenData.userPhone !== phoneNumber) {
+        throw new HttpException(
+          'El número de teléfono no coincide con el token',
+          400,
+        );
+      }
+
+      if (tokenData.type !== 'verify_phone') {
+        throw new HttpException('Tipo de token inválido', 400);
+      }
+
+      // Activar al usuario
+      await this.prisma.users.update({
+        where: { phone: phoneNumber },
+        data: { status: 'active' },
+      });
+
+      // Eliminar el token
+      await this.deleteToken(token);
+
+      return { success: true, message: 'Cuenta verificada exitosamente' };
+    } catch (error) {
+      throw new HttpException(
+        error.message || 'Error al verificar token',
+        error.status || 500,
+      );
+    }
+  }
+
   // Método para obtener estadísticas del pool (útil para debugging)
   getPoolStats() {
     const now = new Date();
     const stats = {
       totalTokens: this.globalTokens.size,
       forgotPasswordTokens: 0,
-      verifyEmailTokens: 0,
+      verifyPhoneTokens: 0,
       expiredTokens: 0,
     };
 
     this.globalTokens.forEach((tokenInfo) => {
       if (tokenInfo.type === 'forgot_password') stats.forgotPasswordTokens++;
-      if (tokenInfo.type === 'verify_email') stats.verifyEmailTokens++;
+      if (tokenInfo.type === 'verify_phone') stats.verifyPhoneTokens++;
 
       const tokenAge = now.getTime() - tokenInfo.date.getTime();
       if (tokenAge > 15 * 60 * 1000) stats.expiredTokens++;
