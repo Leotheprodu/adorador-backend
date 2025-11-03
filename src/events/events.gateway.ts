@@ -64,6 +64,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // Control de clientes conectados
   private connectedClients: Map<string, AuthenticatedSocket> = new Map();
 
+  // Control de usuarios conectados por evento
+  private eventConnections: Map<number, Set<string>> = new Map(); // eventId -> Set of socketIds
+  private clientEventMap: Map<string, number> = new Map(); // socketId -> eventId
+
   // Sistema de rate limiting inteligente
   private rateLimits: Map<string, RateLimitInfo> = new Map(); // key: userId:eventId
   private readonly maxMessagesPerMinute = 30; // 30 mensajes por minuto máx
@@ -145,13 +149,24 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: AuthenticatedSocket) {
     this.logger.log(`Cliente desconectado: ${client.id}`);
+
+    // Limpiar de evento actual si estaba conectado
+    this.leaveCurrentEvent(client.id);
+
+    // Limpiar de clientes conectados
     this.connectedClients.delete(client.id);
   }
 
   private extractTokenFromHandshake(
     client: AuthenticatedSocket,
   ): string | null {
-    // Extraer token de los headers de autorización o query params
+    // Intentar desde handshake.auth (Socket.io auth field)
+    const authToken = client.handshake.auth?.token;
+    if (authToken) {
+      return authToken;
+    }
+
+    // Extraer token de los headers de autorización
     const authHeader = client.handshake.headers.authorization;
     if (authHeader && authHeader.startsWith('Bearer ')) {
       return authHeader.substring(7);
@@ -522,6 +537,151 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.logger.log(
       `Rate limit reseteado para usuario ${userId} en evento ${eventId}`,
     );
+  }
+
+  // ========= MÉTODOS PARA TRACKING DE USUARIOS CONECTADOS =========
+
+  @SubscribeMessage('joinEvent')
+  handleJoinEvent(
+    @MessageBody() data: { eventId: number },
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    try {
+      const { eventId } = data;
+      const socketId = client.id;
+
+      // Remover de evento anterior si existía
+      this.leaveCurrentEvent(socketId);
+
+      // Agregar a nuevo evento
+      if (!this.eventConnections.has(eventId)) {
+        this.eventConnections.set(eventId, new Set());
+      }
+
+      this.eventConnections.get(eventId).add(socketId);
+      this.clientEventMap.set(socketId, eventId);
+
+      this.logger.log(
+        `Cliente ${socketId} (${client.userName || 'Invitado'}) se unió al evento ${eventId}`,
+      );
+
+      // Emitir lista actualizada de usuarios conectados al evento
+      this.emitConnectedUsers(eventId);
+    } catch (error) {
+      this.logger.error(`Error en joinEvent: ${error.message}`);
+      client.emit('error', { m: 'Error joining event' });
+    }
+  }
+
+  @SubscribeMessage('leaveEvent')
+  handleLeaveEvent(@ConnectedSocket() client: AuthenticatedSocket) {
+    this.leaveCurrentEvent(client.id);
+  }
+
+  private leaveCurrentEvent(socketId: string) {
+    const currentEventId = this.clientEventMap.get(socketId);
+
+    if (currentEventId && this.eventConnections.has(currentEventId)) {
+      this.eventConnections.get(currentEventId).delete(socketId);
+
+      // Limpiar evento vacío
+      if (this.eventConnections.get(currentEventId).size === 0) {
+        this.eventConnections.delete(currentEventId);
+      } else {
+        // Emitir lista actualizada
+        this.emitConnectedUsers(currentEventId);
+      }
+
+      this.clientEventMap.delete(socketId);
+
+      const client = this.connectedClients.get(socketId);
+      this.logger.log(
+        `Cliente ${socketId} (${client?.userName || 'Invitado'}) salió del evento ${currentEventId}`,
+      );
+    }
+  }
+
+  private emitConnectedUsers(eventId: number) {
+    const connectedSocketIds = this.eventConnections.get(eventId);
+    if (!connectedSocketIds) return;
+
+    const connectedUsers = [];
+    let guestCount = 0;
+
+    for (const socketId of connectedSocketIds) {
+      const client = this.connectedClients.get(socketId);
+      if (client) {
+        if (client.isAuthenticated && client.userName) {
+          connectedUsers.push({
+            id: client.userId,
+            name: client.userName,
+            isAuthenticated: true,
+          });
+        } else {
+          guestCount++;
+        }
+      } else {
+      }
+    }
+
+    const message = {
+      eventId,
+      users: connectedUsers,
+      guestCount,
+      totalCount: connectedUsers.length + guestCount,
+    };
+
+    // Emitir a todos los usuarios conectados al evento
+    for (const socketId of connectedSocketIds) {
+      const client = this.connectedClients.get(socketId);
+      if (client) {
+        client.emit('eventUsersUpdate', message);
+      }
+    }
+  }
+
+  @SubscribeMessage('getConnectedUsers')
+  handleGetConnectedUsers(
+    @MessageBody() data: { eventId: number },
+    @ConnectedSocket() client: AuthenticatedSocket,
+  ) {
+    const { eventId } = data;
+    const connectedSocketIds = this.eventConnections.get(eventId);
+
+    if (!connectedSocketIds) {
+      client.emit('eventUsersUpdate', {
+        eventId,
+        users: [],
+        guestCount: 0,
+        totalCount: 0,
+      });
+      return;
+    }
+
+    const connectedUsers = [];
+    let guestCount = 0;
+
+    for (const socketId of connectedSocketIds) {
+      const connectedClient = this.connectedClients.get(socketId);
+      if (connectedClient) {
+        if (connectedClient.isAuthenticated && connectedClient.userName) {
+          connectedUsers.push({
+            id: connectedClient.userId,
+            name: connectedClient.userName,
+            isAuthenticated: true,
+          });
+        } else {
+          guestCount++;
+        }
+      }
+    }
+
+    client.emit('eventUsersUpdate', {
+      eventId,
+      users: connectedUsers,
+      guestCount,
+      totalCount: connectedUsers.length + guestCount,
+    });
   }
 
   // Obtener estadísticas de rate limiting para monitoreo
