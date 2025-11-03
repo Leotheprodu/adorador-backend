@@ -392,14 +392,12 @@ export class AuthController {
     try {
       console.log(`[TEST] Testing email send to: ${body.email}`);
 
-      await this.emailService.sendEmail({
-        email: body.email,
-        subject: 'Test Email - Adorador',
+      // Test simple sin template
+      await this.emailService['mailService'].sendMail({
+        to: body.email,
         from: `"Adorador Test" <${process.env.EMAIL_USERNAME}>`,
-        template: 'user-sign_up', // Usar template existente
-        context: {
-          link: 'https://adorador.xyz/test',
-        },
+        subject: 'Test Email - Adorador Simple',
+        html: '<h1>Test Email</h1><p>Este es un email de prueba desde Adorador.</p>',
       });
 
       res.status(HttpStatus.OK).send({
