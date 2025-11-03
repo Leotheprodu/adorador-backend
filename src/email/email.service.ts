@@ -64,8 +64,9 @@ export class EmailService {
     }
   }
   async sendEmailVerification(email: string) {
+    let token: string;
     try {
-      const token = crypto.randomBytes(32).toString('hex');
+      token = crypto.randomBytes(32).toString('hex');
       const tempToken = await this.tempTokenPoolService.createToken(
         token,
         email,
@@ -85,7 +86,18 @@ export class EmailService {
         });
       }
     } catch (e) {
-      catchHandle(e);
+      // If email sending failed, clean up the token
+      if (token) {
+        try {
+          await this.tempTokenPoolService.removeTokenFromGlobalPool(
+            email,
+            'verify_email',
+          );
+        } catch (cleanupError) {
+          console.error('Error cleaning up verification token:', cleanupError);
+        }
+      }
+      throw e; // Re-throw the original error
     }
   }
   async sendForgotPasswordEmail(email: string) {

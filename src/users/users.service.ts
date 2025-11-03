@@ -153,6 +153,7 @@ export class UsersService {
       select: {
         id: true,
         email: true,
+        status: true,
       },
     });
   }

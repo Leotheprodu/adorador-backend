@@ -89,10 +89,29 @@ export class UsersController {
     try {
       const newUser = await this.usersService.createUser(body);
 
+      // Try to send email verification, but don't fail the user creation if it fails
       if (newUser.id >= 1) {
-        await this.emailService.sendEmailVerification(newUser.email);
+        try {
+          await this.emailService.sendEmailVerification(newUser.email);
+          res.status(HttpStatus.CREATED).send({
+            ...newUser,
+            emailSent: true,
+            message:
+              'Usuario creado exitosamente. Revisa tu correo para verificar tu cuenta.',
+          });
+        } catch (emailError) {
+          console.error('Failed to send verification email:', emailError);
+          // User was created successfully, but email failed
+          res.status(HttpStatus.CREATED).send({
+            ...newUser,
+            emailSent: false,
+            message:
+              'Usuario creado exitosamente, pero no se pudo enviar el correo de verificación. Puedes solicitar un nuevo correo de verificación más tarde.',
+          });
+        }
+      } else {
+        res.status(HttpStatus.CREATED).send(newUser);
       }
-      res.status(HttpStatus.CREATED).send(newUser);
     } catch (e) {
       if (e instanceof Prisma.PrismaClientKnownRequestError) {
         // The .code property can be accessed in a type-safe manner
@@ -166,6 +185,47 @@ export class UsersController {
       const updatedUser = await this.usersService.removeRole(userId, roleId);
       res.send(updatedUser);
     } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Post('/resend-verification')
+  @CheckLoginStatus('notLoggedIn')
+  async resendVerification(
+    @Res() res: Response,
+    @Body() body: { email: string },
+  ) {
+    try {
+      // Check if user exists and is not verified
+      const user = await this.usersService.findByEmail(body.email);
+      if (!user) {
+        throw new HttpException('Usuario no encontrado', HttpStatus.NOT_FOUND);
+      }
+
+      if (user.status === 'active') {
+        throw new HttpException(
+          'Email ya está verificado',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      try {
+        await this.emailService.sendEmailVerification(user.email);
+        res.send({
+          success: true,
+          message: 'Correo de verificación enviado exitosamente.',
+        });
+      } catch (emailError) {
+        console.error('Failed to resend verification email:', emailError);
+        throw new HttpException(
+          'No se pudo enviar el correo de verificación. Intenta de nuevo en unos minutos.',
+          HttpStatus.SERVICE_UNAVAILABLE,
+        );
+      }
+    } catch (e) {
+      if (e instanceof HttpException) {
+        throw e;
+      }
       catchHandle(e);
     }
   }
