@@ -12,13 +12,21 @@ import { TemporalTokenPoolModule } from 'src/temporal-token-pool/temporal-token-
       useFactory: () => ({
         transport: {
           host: process.env.EMAIL_HOST,
-          port: 587,
-          secure: false,
-
+          port: parseInt(process.env.EMAIL_PORT) || 587,
+          secure: process.env.EMAIL_SECURE === 'true' || false,
+          requireTLS: true,
           auth: {
             user: process.env.EMAIL_USERNAME,
             pass: process.env.EMAIL_PASSWORD,
           },
+          // Configuration for better compatibility
+          tls: {
+            rejectUnauthorized: false,
+          },
+          // Connection timeouts
+          connectionTimeout: 60000, // 60 seconds
+          greetingTimeout: 30000, // 30 seconds
+          socketTimeout: 60000, // 60 seconds
         },
         defaults: {
           from: process.env.EMAIL_USERNAME,
