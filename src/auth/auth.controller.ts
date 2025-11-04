@@ -302,8 +302,7 @@ export class AuthController {
         throw new HttpException('User not found', HttpStatus.NOT_FOUND);
       }
 
-      // TODO: En lugar de email, implementar envío por WhatsApp o SMS
-      // Por ahora, generamos token para reset pero sin envío automático
+      // Generar token para reset de contraseña vía WhatsApp
       const resetToken = require('crypto').randomBytes(32).toString('hex');
       await this.temporalTokenPoolService.createToken(
         resetToken,
@@ -313,10 +312,11 @@ export class AuthController {
 
       res.status(HttpStatus.ACCEPTED).send({
         status: 'success',
-        resetToken, // Devolver el token para que el frontend pueda mostrarlo
+        resetToken,
         phone: user.phone,
+        whatsappMessage: `Para restablecer tu contraseña en Adorador, envía este mensaje al bot de WhatsApp ${process.env.WHATSAPP_BOT_NUMBER || '+50663017707'}: "resetpass-adorador:${resetToken}"`,
         message:
-          'Token de restablecimiento generado. Contacta al soporte para restablecer tu contraseña.',
+          'Token de restablecimiento generado. Envía el mensaje por WhatsApp para continuar.',
       });
     } catch (e) {
       // Personalizar mensajes de error para usuarios

@@ -74,4 +74,60 @@ export class TemporalTokenPoolController {
   async verifyWhatsAppTokenAlt(@Body() body: VerifyWhatsAppTokenDto) {
     return this.verifyWhatsAppToken(body);
   }
+
+  @Post('verify-whatsapp-reset')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Verificar token de reset de contraseña por WhatsApp',
+    description:
+      'Endpoint para que el bot de WhatsApp verifique tokens de reset de contraseña',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Token de reset verificado exitosamente',
+    schema: {
+      type: 'object',
+      properties: {
+        success: { type: 'boolean' },
+        message: { type: 'string' },
+        resetLink: { type: 'string' },
+        user: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            name: { type: 'string' },
+            phone: { type: 'string' },
+          },
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Token inválido o número de teléfono no coincide',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Token no encontrado o expirado',
+  })
+  async verifyWhatsAppResetToken(@Body() body: VerifyWhatsAppTokenDto) {
+    try {
+      console.log('[WHATSAPP-RESET] Verificación iniciada:', {
+        token: body.token?.substring(0, 8) + '...',
+        phone: body.phoneNumber,
+      });
+
+      const result =
+        await this.temporalTokenPoolService.verifyWhatsAppResetToken(
+          body.token,
+          body.phoneNumber,
+        );
+
+      console.log('[WHATSAPP-RESET] Verificación exitosa:', result);
+      return result;
+    } catch (error) {
+      console.error('[WHATSAPP-RESET] Error en verificación:', error);
+      throw error;
+    }
+  }
 }
