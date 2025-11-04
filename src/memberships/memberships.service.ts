@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class MembershipsService {
@@ -22,6 +22,11 @@ export class MembershipsService {
   async findOne(id: number) {
     return await this.prisma.memberships.findUnique({
       where: { id },
+      include: {
+        church: true,
+        user: true,
+        roles: true,
+      },
     });
   }
 

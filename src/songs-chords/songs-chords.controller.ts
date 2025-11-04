@@ -24,15 +24,15 @@ import {
   ApiUpdateChord,
   ApiDeleteChord,
 } from './songs-chords.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
-import { SongsService } from 'src/songs/songs.service';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
+import { SongsService } from '../songs/songs.service';
 import {
   CheckChurch,
   CheckLoginStatus,
-} from 'src/auth/decorators/permissions.decorators';
+} from '../auth/decorators/permissions.decorators';
 import { Response } from 'express';
-import { churchRoles } from 'config/constants';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { churchRoles } from '../../config/constants';
+import { catchHandle } from '../chore/utils/catchHandle';
 
 @Controller('bands/:bandId/songs/:songId/lyrics/:lyricId/chords')
 @ApiTags('Songs Chords')

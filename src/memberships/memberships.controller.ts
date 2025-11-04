@@ -15,7 +15,7 @@ import {
 import { MembershipsService } from './memberships.service';
 import { CreateMembershipDto } from './dto/create-membership.dto';
 import { UpdateMembershipDto } from './dto/update-membership.dto';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { catchHandle } from '../chore/utils/catchHandle';
 import { Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import {
@@ -25,13 +25,13 @@ import {
   ApiUpdateMembership,
   ApiDeleteMembership,
 } from './memberships.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
   CheckLoginStatus,
   CheckUserId,
-} from 'src/auth/decorators/permissions.decorators';
-import { churchRoles } from 'config/constants';
+} from '../auth/decorators/permissions.decorators';
+import { churchRoles } from '../../config/constants';
 
 @Controller('users/:userId/memberships')
 @ApiTags('memberships')

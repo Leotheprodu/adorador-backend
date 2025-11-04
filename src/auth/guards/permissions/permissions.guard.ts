@@ -6,7 +6,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { JwtPayload } from 'src/auth/services/jwt.service';
+import { JwtPayload } from '../../services/jwt.service';
 import {
   APP_ROLE_KEY,
   AppRoleType,
@@ -18,14 +18,14 @@ import {
   CheckLoginStatusType,
   CheckUserIdType,
   CheckUserMemberOfBandType,
-} from 'src/auth/decorators/permissions.decorators';
-import { checkAdminHandle } from 'src/auth/utils/checkAdminHandle';
-import { checkAppRolesHandle } from 'src/auth/utils/checkAppRolesHandle';
-import { checkChurchHandle } from 'src/auth/utils/checkChurchHandle';
-import { checkLoginStatusHandle } from 'src/auth/utils/checkLoginStatusHandle';
-import { checkUserIdParamHandle } from 'src/auth/utils/checkUserIdParamHandle';
-import { isMemberOfBand } from 'src/auth/utils/checkUserIsMemberOfBand';
-import { MembershipsService } from 'src/memberships/memberships.service';
+} from '../../decorators/permissions.decorators';
+import { checkAdminHandle } from '../../utils/checkAdminHandle';
+import { checkAppRolesHandle } from '../../utils/checkAppRolesHandle';
+import { checkChurchHandle } from '../../utils/checkChurchHandle';
+import { checkLoginStatusHandle } from '../../utils/checkLoginStatusHandle';
+import { checkUserIdParamHandle } from '../../utils/checkUserIdParamHandle';
+import { isMemberOfBand } from '../../utils/checkUserIsMemberOfBand';
+import { MembershipsService } from '../../../memberships/memberships.service';
 @Injectable()
 export class PermissionsGuard implements CanActivate {
   constructor(

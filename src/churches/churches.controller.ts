@@ -22,14 +22,14 @@ import {
   ApiDeleteChurch,
 } from './churches.swagger';
 import { Response } from 'express';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { catchHandle } from '../chore/utils/catchHandle';
 import { CreateChurchDto } from './dto/create-church.dto';
-import { JwtPermissionsGuard } from 'src/auth/guards/jwt-permissions.guard';
+import { JwtPermissionsGuard } from '../auth/guards/jwt-permissions.guard';
 import {
   AppRole,
   CheckLoginStatus,
-} from 'src/auth/decorators/permissions.decorators';
-import { userRoles } from 'config/constants';
+} from '../auth/decorators/permissions.decorators';
+import { userRoles } from '../../config/constants';
 
 @Controller('churches')
 @ApiTags('churches')

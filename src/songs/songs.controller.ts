@@ -23,15 +23,15 @@ import {
   ApiUpdateSong,
   ApiDeleteSong,
 } from './songs.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
   CheckLoginStatus,
   CheckUserMemberOfBand,
-} from 'src/auth/decorators/permissions.decorators';
-import { churchRoles } from 'config/constants';
+} from '../auth/decorators/permissions.decorators';
+import { churchRoles } from '../../config/constants';
 import { Response } from 'express';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { catchHandle } from '../chore/utils/catchHandle';
 
 @Controller('bands/:bandId/songs')
 @ApiTags('Songs')

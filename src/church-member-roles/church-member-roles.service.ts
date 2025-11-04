@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateChurchMemberRoleDto } from './dto/create-church-member-role.dto';
 import { UpdateChurchMemberRoleDto } from './dto/update-church-member-role.dto';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class ChurchMemberRolesService {

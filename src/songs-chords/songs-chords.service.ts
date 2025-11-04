@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { CreateSongsChordDto } from './dto/create-songs-chord.dto';
 import { UpdateSongsChordDto } from './dto/update-songs-chord.dto';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 
 @Injectable()
 export class SongsChordsService {

@@ -2,7 +2,7 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 import { Observable } from 'rxjs';
 import { Socket } from 'socket.io';
-import { AuthJwtService } from 'src/auth/services/jwt.service';
+import { AuthJwtService } from '../auth/services/jwt.service';
 
 @Injectable()
 export class WsAuthGuard implements CanActivate {

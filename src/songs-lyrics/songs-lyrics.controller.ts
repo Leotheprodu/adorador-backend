@@ -27,18 +27,18 @@ import {
   ApiUpdateLyric,
   ApiDeleteLyric,
 } from './songs-lyrics.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import { Response } from 'express';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
-import { JwtPayload } from 'src/auth/services/jwt.service';
-import { SongsService } from 'src/songs/songs.service';
-import { churchRoles } from 'config/constants';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { JwtPayload } from '../auth/services/jwt.service';
+import { SongsService } from '../songs/songs.service';
+import { churchRoles } from '../../config/constants';
+import { catchHandle } from '../chore/utils/catchHandle';
 import {
   CheckChurch,
   CheckLoginStatus,
   CheckUserMemberOfBand,
-} from 'src/auth/decorators/permissions.decorators';
+} from '../auth/decorators/permissions.decorators';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @Controller('bands/:bandId/songs/:songId/lyrics')

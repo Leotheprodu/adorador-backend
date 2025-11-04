@@ -1,5 +1,5 @@
 import { HttpException, Injectable, OnModuleInit } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 import { Cron } from '@nestjs/schedule';
 import * as crypto from 'crypto';
 

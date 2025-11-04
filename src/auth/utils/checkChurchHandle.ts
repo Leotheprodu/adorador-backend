@@ -2,7 +2,7 @@ import { ForbiddenException } from '@nestjs/common';
 import { CheckChurchType } from '../decorators/permissions.decorators';
 import { JwtPayload } from '../services/jwt.service';
 import { Request } from 'express';
-import { MembershipsService } from 'src/memberships/memberships.service';
+import { MembershipsService } from '../../memberships/memberships.service';
 
 export const checkChurchHandle = async (
   checkChurch: CheckChurchType,

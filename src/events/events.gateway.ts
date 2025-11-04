@@ -9,9 +9,9 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { EventsService } from './events.service';
-import { frontEndUrl } from 'config/constants';
+import { frontEndUrl } from '../../config/constants';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
-import { AuthJwtService, JwtPayload } from 'src/auth/services/jwt.service';
+import { AuthJwtService, JwtPayload } from '../auth/services/jwt.service';
 import {
   OptimizedLyricMessage,
   OptimizedEventSongMessage,
