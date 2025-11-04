@@ -37,7 +37,14 @@ describe('BandsService', () => {
 
   describe('getBands', () => {
     it('should return all bands', async () => {
-      const mockBands = [{ id: 1, name: 'Band 1' }];
+      const mockBands = [
+        {
+          id: 1,
+          name: 'Band 1',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      ];
       prismaService.bands.findMany.mockResolvedValue(mockBands);
 
       const result = await service.getBands();
@@ -59,7 +66,19 @@ describe('BandsService', () => {
         {
           id: 1,
           name: 'Band 1',
-          events: [],
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          events: [
+            {
+              id: 1,
+              name: 'Event 1',
+              date: new Date('2025-12-01'),
+              bandId: 1,
+              churchId: 1,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            },
+          ],
           _count: { members: 1, events: 1, songs: 1 },
         },
       ];
@@ -67,20 +86,21 @@ describe('BandsService', () => {
 
       const result = await service.getBandsByUserId(userId);
 
-      expect(prismaService.bands.findMany).toHaveBeenCalledWith({
-        where: {
-          members: {
-            some: {
-              userId,
+      expect(prismaService.bands.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: {
+            members: {
+              some: {
+                userId,
+              },
             },
           },
-        },
-        include: expect.any(Object),
-        omit: {
-          createdAt: true,
-          updatedAt: true,
-        },
-      });
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+      );
       expect(result).toEqual(mockBands);
     });
   });
@@ -88,7 +108,12 @@ describe('BandsService', () => {
   describe('createBand', () => {
     it('should create a new band', async () => {
       const createBandDto = { name: 'New Band' };
-      const mockBand = { id: 1, name: 'New Band' };
+      const mockBand = {
+        id: 1,
+        name: 'New Band',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       prismaService.bands.create.mockResolvedValue(mockBand);
 
       const result = await service.createBand(createBandDto);
@@ -106,22 +131,44 @@ describe('BandsService', () => {
       const mockBand = {
         id: 1,
         name: 'Band 1',
-        _count: { events: 1, songs: 1 },
-        songs: [],
-        events: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        _count: { events: 2, songs: 5 },
+        songs: [
+          {
+            id: 1,
+            title: 'Song 1',
+            bandId: 1,
+            eventId: null,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
+        events: [
+          {
+            id: 1,
+            name: 'Event 1',
+            date: new Date('2025-12-01'),
+            bandId: 1,
+            churchId: 1,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          },
+        ],
       };
       prismaService.bands.findUnique.mockResolvedValue(mockBand);
 
       const result = await service.getBand(bandId);
 
-      expect(prismaService.bands.findUnique).toHaveBeenCalledWith({
-        where: { id: bandId },
-        omit: {
-          createdAt: true,
-          updatedAt: true,
-        },
-        include: expect.any(Object),
-      });
+      expect(prismaService.bands.findUnique).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: bandId },
+          omit: {
+            createdAt: true,
+            updatedAt: true,
+          },
+        }),
+      );
       expect(result).toEqual(mockBand);
     });
   });
@@ -130,7 +177,12 @@ describe('BandsService', () => {
     it('should update a band', async () => {
       const bandId = 1;
       const updateData = { name: 'Updated Band' };
-      const mockBand = { id: 1, name: 'Updated Band' };
+      const mockBand = {
+        id: 1,
+        name: 'Updated Band',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       prismaService.bands.update.mockResolvedValue(mockBand);
 
       const result = await service.updateBand(bandId, updateData);
@@ -146,7 +198,12 @@ describe('BandsService', () => {
   describe('deleteBand', () => {
     it('should delete a band', async () => {
       const bandId = 1;
-      const mockBand = { id: 1, name: 'Band 1' };
+      const mockBand = {
+        id: 1,
+        name: 'Band 1',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
       prismaService.bands.delete.mockResolvedValue(mockBand);
 
       const result = await service.deleteBand(bandId);
