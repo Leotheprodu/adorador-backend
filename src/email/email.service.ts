@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
 import { MailerService } from '@nestjs-modules/mailer';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 import * as crypto from 'crypto';
 import {
   frontEndUrl,
   groupCampainEmailService,
   tokenCampainEmailService,
-} from 'config/constants';
-import { catchHandle } from 'src/chore/utils/catchHandle';
-import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
+} from '../../config/constants';
+import { catchHandle } from '../chore/utils/catchHandle';
+import { TemporalTokenPoolService } from '../temporal-token-pool/temporal-token-pool.service';
 @Injectable()
 export class EmailService {
   constructor(

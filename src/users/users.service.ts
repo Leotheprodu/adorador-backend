@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 import { passwordEncrypt } from './utils/handlePassword';
-import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
+import { TemporalTokenPoolService } from '../temporal-token-pool/temporal-token-pool.service';
 import * as crypto from 'crypto';
 
 @Injectable()

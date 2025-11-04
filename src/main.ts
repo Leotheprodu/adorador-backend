@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
-import { corsLink } from 'config/constants';
+import { corsLink } from '../../config/constants';
 import { NestExpressApplication } from '@nestjs/platform-express';
 
 async function bootstrap() {

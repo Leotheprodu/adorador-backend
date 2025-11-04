@@ -14,7 +14,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { Response, Request } from 'express';
 import { LoginDto } from './dto/login.dto';
-import { UsersService } from 'src/users/users.service';
+import { UsersService } from '../users/users.service';
 import {
   ApiLogin,
   ApiLogout,
@@ -24,17 +24,17 @@ import {
   ApiForgotPassword,
   ApiNewPassword,
 } from './auth.swagger';
-import { EmailService } from 'src/email/email.service';
-import { userRoles } from 'config/constants';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { EmailService } from '../email/email.service';
+import { userRoles } from '../../config/constants';
+import { catchHandle } from '../chore/utils/catchHandle';
 import { PermissionsGuard } from './guards/permissions/permissions.guard';
 import { CheckLoginStatus } from './decorators/permissions.decorators';
-import { TemporalTokenPoolService } from 'src/temporal-token-pool/temporal-token-pool.service';
+import { TemporalTokenPoolService } from '../temporal-token-pool/temporal-token-pool.service';
 import { ForgotPasswordDTO } from './dto/forgot-password.dto';
 import { NewPaswordDTO } from './dto/new-password.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { AuthJwtService } from './services/jwt.service';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 
 @Controller('auth')
 @ApiTags('auth')

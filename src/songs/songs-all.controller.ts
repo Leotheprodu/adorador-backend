@@ -18,14 +18,14 @@ import { CreateSongDto } from './dto/create-song.dto';
 import { UpdateSongDto } from './dto/update-song.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { ApiGetAllSongs } from './songs.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
   CheckLoginStatus,
-} from 'src/auth/decorators/permissions.decorators';
-import { churchRoles } from 'config/constants';
+} from '../auth/decorators/permissions.decorators';
+import { churchRoles } from '../../config/constants';
 import { Response } from 'express';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { catchHandle } from '../chore/utils/catchHandle';
 
 @Controller('songs')
 @ApiTags('Songs')

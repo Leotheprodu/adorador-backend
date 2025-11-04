@@ -23,13 +23,13 @@ import {
   ApiUpdateMembershipRole,
   ApiDeleteMembershipRole,
 } from './church-member-roles.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
   CheckLoginStatus,
   CheckUserId,
-} from 'src/auth/decorators/permissions.decorators';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+} from '../auth/decorators/permissions.decorators';
+import { catchHandle } from '../chore/utils/catchHandle';
 import { Response } from 'express';
 
 @Controller('users/:userId/memberships/:membershipId/roles')

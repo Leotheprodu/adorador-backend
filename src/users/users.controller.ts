@@ -16,8 +16,8 @@ import { Response } from 'express';
 import { CreateUserDto } from './dto/create-user.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { Prisma } from '@prisma/client';
-import { EmailService } from 'src/email/email.service';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { EmailService } from '../email/email.service';
+import { catchHandle } from '../chore/utils/catchHandle';
 import {
   ApiGetUsers,
   ApiGetUser,
@@ -27,16 +27,16 @@ import {
   ApiAddUserRole,
   ApiRemoveUserRole,
 } from './users.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
-import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import {
   AppRole,
   CheckLoginStatus,
   CheckUserId,
-} from 'src/auth/decorators/permissions.decorators';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
-import { JwtPayload } from 'src/auth/services/jwt.service';
-import { userRoles } from 'config/constants';
+} from '../auth/decorators/permissions.decorators';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { JwtPayload } from '../auth/services/jwt.service';
+import { userRoles } from '../../config/constants';
 
 @Controller('users')
 @ApiTags('users')

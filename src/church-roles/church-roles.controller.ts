@@ -22,14 +22,14 @@ import {
   ApiUpdateChurchRole,
   ApiDeleteChurchRole,
 } from './church-roles.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   AppRole,
   CheckLoginStatus,
-} from 'src/auth/decorators/permissions.decorators';
+} from '../auth/decorators/permissions.decorators';
 import { Response } from 'express';
-import { catchHandle } from 'src/chore/utils/catchHandle';
-import { userRoles } from 'config/constants';
+import { catchHandle } from '../chore/utils/catchHandle';
+import { userRoles } from '../../config/constants';
 
 @Controller('roles/churches')
 @ApiTags('Church Roles')

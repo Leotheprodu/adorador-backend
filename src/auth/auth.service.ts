@@ -1,7 +1,7 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 import { LoginDto } from './dto/login.dto';
-import { passwordCompare } from 'src/users/utils/handlePassword';
+import { passwordCompare } from '../users/utils/handlePassword';
 
 @Injectable()
 export class AuthService {

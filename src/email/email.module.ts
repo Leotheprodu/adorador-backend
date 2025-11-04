@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common';
 import { EmailService } from './email.service';
-import { PrismaService } from 'src/prisma.service';
+import { PrismaService } from '../prisma.service';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { EjsAdapter } from '@nestjs-modules/mailer/dist/adapters/ejs.adapter';
-import { TemporalTokenPoolModule } from 'src/temporal-token-pool/temporal-token-pool.module';
+import { TemporalTokenPoolModule } from '../temporal-token-pool/temporal-token-pool.module';
 @Module({
   providers: [EmailService, PrismaService],
   imports: [

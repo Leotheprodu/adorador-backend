@@ -30,20 +30,20 @@ import {
   ApiRemoveSongsFromEvent,
   ApiUpdateEventSongs,
 } from './events.swagger';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
   CheckLoginStatus,
-} from 'src/auth/decorators/permissions.decorators';
-import { churchRoles } from 'config/constants';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+} from '../auth/decorators/permissions.decorators';
+import { churchRoles } from '../../config/constants';
+import { catchHandle } from '../chore/utils/catchHandle';
 import { Response } from 'express';
 import {
   AddSongsToEventDto,
   RemoveSongsToEventDto,
 } from './dto/add-songs-to-event.dto';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
-import { JwtPayload } from 'src/auth/services/jwt.service';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { JwtPayload } from '../auth/services/jwt.service';
 import { EventsGateway } from './events.gateway';
 import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 

@@ -10,12 +10,12 @@ import {
 } from '@nestjs/common';
 import { Response } from 'express';
 import { EventsGateway } from './events.gateway';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
-import { JwtPayload } from 'src/auth/services/jwt.service';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
-import { CheckLoginStatus } from 'src/auth/decorators/permissions.decorators';
-import { catchHandle } from 'src/chore/utils/catchHandle';
-import { checkAdminHandle } from 'src/auth/utils/checkAdminHandle';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { JwtPayload } from '../auth/services/jwt.service';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
+import { CheckLoginStatus } from '../auth/decorators/permissions.decorators';
+import { catchHandle } from '../chore/utils/catchHandle';
+import { checkAdminHandle } from '../auth/utils/checkAdminHandle';
 import { EventsService } from './events.service';
 
 export type lyricSelectedProps = {
