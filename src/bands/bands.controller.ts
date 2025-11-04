@@ -15,15 +15,15 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import { BandsService } from './bands.service';
 import { Response } from 'express';
-import { catchHandle } from 'src/chore/utils/catchHandle';
-import { PermissionsGuard } from 'src/auth/guards/permissions/permissions.guard';
+import { catchHandle } from '../chore/utils/catchHandle';
+import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   AppRole,
   CheckLoginStatus,
-} from 'src/auth/decorators/permissions.decorators';
-import { GetUser } from 'src/auth/decorators/get-user.decorator';
-import { JwtPayload } from 'src/auth/services/jwt.service';
-import { userRoles } from 'config/constants';
+} from '../auth/decorators/permissions.decorators';
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { JwtPayload } from '../auth/services/jwt.service';
+import { userRoles } from '../../config/constants';
 import { CreateBandDto } from './dto/create-band.dto';
 import {
   ApiGetBands,
