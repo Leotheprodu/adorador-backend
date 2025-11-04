@@ -1,6 +1,6 @@
 import { PermissionsGuard } from './permissions.guard';
 import { Reflector } from '@nestjs/core';
-import { MembershipsService } from '../memberships/memberships.service';
+import { MembershipsService } from '../../../memberships/memberships.service';
 import { JwtAuthGuard } from '../jwt-auth.guard';
 
 describe('PermissionsGuard', () => {

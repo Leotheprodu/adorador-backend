@@ -1,7 +1,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { userRoles } from '../../config/constants';
+import { userRoles } from '../../../../config/constants';
 import { Observable } from 'rxjs';
-import { JwtPayload } from '../auth/services/jwt.service';
+import { JwtPayload } from '../../../auth/services/jwt.service';
 
 @Injectable()
 export class UserStatusGuard implements CanActivate {
