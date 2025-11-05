@@ -16,6 +16,7 @@ describe('SongsLyricsController', () => {
     updateArrayOfLyrics: jest.fn(),
     remove: jest.fn(),
     parseAndSaveLyricsWithChords: jest.fn(),
+    normalizeLyrics: jest.fn(),
   };
 
   const mockSongsService = {
@@ -78,5 +79,147 @@ describe('SongsLyricsController', () => {
 
   it('should have uploadLyricsWithChordsByFile method', () => {
     expect(controller.uploadLyricsWithChordsByFile).toBeDefined();
+  });
+
+  it('should have normalizeLyrics method', () => {
+    expect(controller.normalizeLyrics).toBeDefined();
+  });
+
+  describe('normalizeLyrics', () => {
+    it('should normalize lyrics successfully', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const normalizeLyricsDto = {
+        lyricIds: [1, 2, 3],
+      };
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      const mockResult = {
+        message: 'Normalized 3 of 3 lyrics',
+        results: {
+          success: [1, 2, 3],
+          failed: [],
+          notFound: [],
+        },
+      };
+
+      mockSongsLyricsService.normalizeLyrics.mockResolvedValue(mockResult);
+
+      await controller.normalizeLyrics(
+        bandId,
+        songId,
+        normalizeLyricsDto,
+        mockResponse,
+      );
+
+      expect(mockSongsLyricsService.normalizeLyrics).toHaveBeenCalledWith(
+        songId,
+        [1, 2, 3],
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.send).toHaveBeenCalledWith(mockResult);
+    });
+
+    it('should handle partial normalization', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const normalizeLyricsDto = {
+        lyricIds: [1, 2, 999],
+      };
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      const mockResult = {
+        message: 'Normalized 2 of 3 lyrics',
+        results: {
+          success: [1, 2],
+          failed: [],
+          notFound: [999],
+        },
+      };
+
+      mockSongsLyricsService.normalizeLyrics.mockResolvedValue(mockResult);
+
+      await controller.normalizeLyrics(
+        bandId,
+        songId,
+        normalizeLyricsDto,
+        mockResponse,
+      );
+
+      expect(mockSongsLyricsService.normalizeLyrics).toHaveBeenCalledWith(
+        songId,
+        [1, 2, 999],
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.send).toHaveBeenCalledWith(mockResult);
+    });
+
+    it('should handle errors during normalization', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const normalizeLyricsDto = {
+        lyricIds: [1, 2],
+      };
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      mockSongsLyricsService.normalizeLyrics.mockRejectedValue(
+        new Error('Database error'),
+      );
+
+      await expect(
+        controller.normalizeLyrics(
+          bandId,
+          songId,
+          normalizeLyricsDto,
+          mockResponse,
+        ),
+      ).rejects.toThrow();
+    });
+
+    it('should handle empty lyricIds array', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const normalizeLyricsDto = {
+        lyricIds: [],
+      };
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      const mockResult = {
+        message: 'Normalized 0 of 0 lyrics',
+        results: {
+          success: [],
+          failed: [],
+          notFound: [],
+        },
+      };
+
+      mockSongsLyricsService.normalizeLyrics.mockResolvedValue(mockResult);
+
+      await controller.normalizeLyrics(
+        bandId,
+        songId,
+        normalizeLyricsDto,
+        mockResponse,
+      );
+
+      expect(mockSongsLyricsService.normalizeLyrics).toHaveBeenCalledWith(
+        songId,
+        [],
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.send).toHaveBeenCalledWith(mockResult);
+    });
   });
 });

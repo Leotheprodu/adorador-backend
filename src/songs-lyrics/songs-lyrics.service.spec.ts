@@ -343,4 +343,204 @@ describe('SongsLyricsService', () => {
       ).rejects.toThrow('File validation failed');
     });
   });
+
+  describe('normalizeLyrics', () => {
+    it('should normalize multiple lyrics successfully', async () => {
+      const songId = 1;
+      const lyricIds = [1, 2, 3];
+
+      const mockLyrics = [
+        {
+          id: 1,
+          songId: 1,
+          lyrics: 'AMAZING GRACE!!!',
+          position: 1,
+          structureId: 2,
+        },
+        {
+          id: 2,
+          songId: 1,
+          lyrics: '  how sweet the sound  ',
+          position: 2,
+          structureId: 2,
+        },
+        {
+          id: 3,
+          songId: 1,
+          lyrics: 'that saved a wretch like me',
+          position: 3,
+          structureId: 2,
+        },
+      ];
+
+      mockPrismaService.songs_lyrics.findUnique
+        .mockResolvedValueOnce(mockLyrics[0])
+        .mockResolvedValueOnce(mockLyrics[1])
+        .mockResolvedValueOnce(mockLyrics[2]);
+
+      mockLyricsNormalizer.normalize
+        .mockReturnValueOnce('Amazing grace')
+        .mockReturnValueOnce('How sweet the sound')
+        .mockReturnValueOnce('That saved a wretch like me');
+
+      mockPrismaService.songs_lyrics.update
+        .mockResolvedValueOnce({ ...mockLyrics[0], lyrics: 'Amazing grace' })
+        .mockResolvedValueOnce({
+          ...mockLyrics[1],
+          lyrics: 'How sweet the sound',
+        })
+        .mockResolvedValueOnce({
+          ...mockLyrics[2],
+          lyrics: 'That saved a wretch like me',
+        });
+
+      const result = await service.normalizeLyrics(songId, lyricIds);
+
+      expect(result.message).toBe('Normalized 3 of 3 lyrics');
+      expect(result.results.success).toEqual([1, 2, 3]);
+      expect(result.results.failed).toEqual([]);
+      expect(result.results.notFound).toEqual([]);
+      expect(mockLyricsNormalizer.normalize).toHaveBeenCalledTimes(3);
+      expect(mockPrismaService.songs_lyrics.update).toHaveBeenCalledTimes(3);
+    });
+
+    it('should handle non-existent lyrics', async () => {
+      const songId = 1;
+      const lyricIds = [1, 2, 999];
+
+      mockPrismaService.songs_lyrics.findUnique
+        .mockResolvedValueOnce({
+          id: 1,
+          songId: 1,
+          lyrics: 'test',
+          position: 1,
+          structureId: 2,
+        })
+        .mockResolvedValueOnce({
+          id: 2,
+          songId: 1,
+          lyrics: 'test2',
+          position: 2,
+          structureId: 2,
+        })
+        .mockResolvedValueOnce(null);
+
+      mockLyricsNormalizer.normalize
+        .mockReturnValueOnce('Test')
+        .mockReturnValueOnce('Test2');
+
+      mockPrismaService.songs_lyrics.update
+        .mockResolvedValueOnce({
+          id: 1,
+          songId: 1,
+          lyrics: 'Test',
+          position: 1,
+          structureId: 2,
+        })
+        .mockResolvedValueOnce({
+          id: 2,
+          songId: 1,
+          lyrics: 'Test2',
+          position: 2,
+          structureId: 2,
+        });
+
+      const result = await service.normalizeLyrics(songId, lyricIds);
+
+      expect(result.message).toBe('Normalized 2 of 3 lyrics');
+      expect(result.results.success).toEqual([1, 2]);
+      expect(result.results.notFound).toEqual([999]);
+      expect(result.results.failed).toEqual([]);
+    });
+
+    it('should handle errors during normalization', async () => {
+      const songId = 1;
+      const lyricIds = [1, 2];
+
+      mockPrismaService.songs_lyrics.findUnique
+        .mockResolvedValueOnce({
+          id: 1,
+          songId: 1,
+          lyrics: 'test',
+          position: 1,
+          structureId: 2,
+        })
+        .mockResolvedValueOnce({
+          id: 2,
+          songId: 1,
+          lyrics: 'test2',
+          position: 2,
+          structureId: 2,
+        });
+
+      mockLyricsNormalizer.normalize
+        .mockReturnValueOnce('Test')
+        .mockReturnValueOnce('Test2');
+
+      mockPrismaService.songs_lyrics.update
+        .mockResolvedValueOnce({
+          id: 1,
+          songId: 1,
+          lyrics: 'Test',
+          position: 1,
+          structureId: 2,
+        })
+        .mockRejectedValueOnce(new Error('Database connection failed'));
+
+      const result = await service.normalizeLyrics(songId, lyricIds);
+
+      expect(result.message).toBe('Normalized 1 of 2 lyrics');
+      expect(result.results.success).toEqual([1]);
+      expect(result.results.failed).toEqual([
+        { id: 2, error: 'Database connection failed' },
+      ]);
+      expect(result.results.notFound).toEqual([]);
+    });
+
+    it('should handle empty lyric IDs array', async () => {
+      const songId = 1;
+      const lyricIds: number[] = [];
+
+      const result = await service.normalizeLyrics(songId, lyricIds);
+
+      expect(result.message).toBe('Normalized 0 of 0 lyrics');
+      expect(result.results.success).toEqual([]);
+      expect(result.results.failed).toEqual([]);
+      expect(result.results.notFound).toEqual([]);
+      expect(mockPrismaService.songs_lyrics.findUnique).not.toHaveBeenCalled();
+    });
+
+    it('should normalize divine words correctly', async () => {
+      const songId = 1;
+      const lyricIds = [1];
+
+      mockPrismaService.songs_lyrics.findUnique.mockResolvedValueOnce({
+        id: 1,
+        songId: 1,
+        lyrics: 'dios es amor y jesus es señor',
+        position: 1,
+        structureId: 2,
+      });
+
+      mockLyricsNormalizer.normalize.mockReturnValueOnce(
+        'Dios es amor y Jesús es Señor',
+      );
+
+      mockPrismaService.songs_lyrics.update.mockResolvedValueOnce({
+        id: 1,
+        songId: 1,
+        lyrics: 'Dios es amor y Jesús es Señor',
+        position: 1,
+        structureId: 2,
+      });
+
+      const result = await service.normalizeLyrics(songId, lyricIds);
+
+      expect(result.message).toBe('Normalized 1 of 1 lyrics');
+      expect(result.results.success).toEqual([1]);
+      expect(mockLyricsNormalizer.normalize).toHaveBeenCalledWith(
+        'dios es amor y jesus es señor',
+      );
+    });
+  });
 });

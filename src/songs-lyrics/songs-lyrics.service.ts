@@ -250,4 +250,51 @@ export class SongsLyricsService {
         'Lyrics and chords processed with validated notes and qualities!',
     };
   }
+
+  /**
+   * Normaliza las letras existentes aplicando las mismas reglas
+   * que se usan al cargar desde archivo txt
+   */
+  async normalizeLyrics(songId: number, lyricIds: number[]) {
+    const results = {
+      success: [] as number[],
+      failed: [] as { id: number; error: string }[],
+      notFound: [] as number[],
+    };
+
+    for (const lyricId of lyricIds) {
+      try {
+        // Buscar la letra
+        const lyric = await this.prisma.songs_lyrics.findUnique({
+          where: { id: lyricId, songId },
+        });
+
+        if (!lyric) {
+          results.notFound.push(lyricId);
+          continue;
+        }
+
+        // Normalizar la letra
+        const normalizedLyrics = this.lyricsNormalizer.normalize(lyric.lyrics);
+
+        // Actualizar en la base de datos
+        await this.prisma.songs_lyrics.update({
+          where: { id: lyricId, songId },
+          data: { lyrics: normalizedLyrics },
+        });
+
+        results.success.push(lyricId);
+      } catch (error) {
+        results.failed.push({
+          id: lyricId,
+          error: error.message || 'Unknown error',
+        });
+      }
+    }
+
+    return {
+      message: `Normalized ${results.success.length} of ${lyricIds.length} lyrics`,
+      results,
+    };
+  }
 }

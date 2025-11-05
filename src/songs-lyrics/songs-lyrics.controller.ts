@@ -18,6 +18,7 @@ import {
 import { SongsLyricsService } from './songs-lyrics.service';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
 import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
+import { NormalizeLyricsDto } from './dto/normalize-lyrics.dto';
 import { ApiTags } from '@nestjs/swagger';
 import {
   ApiUploadLyricsFile,
@@ -26,6 +27,7 @@ import {
   ApiGetLyric,
   ApiUpdateLyric,
   ApiDeleteLyric,
+  ApiNormalizeLyrics,
 } from './songs-lyrics.swagger';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import { Response } from 'express';
@@ -240,6 +242,29 @@ export class SongsLyricsController {
         );
       }
       res.status(HttpStatus.OK).send({ message: 'Lyrics updated' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @ApiNormalizeLyrics()
+  @Patch('normalize')
+  /* @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  }) */
+  async normalizeLyrics(
+    @Param('bandId', ParseIntPipe) bandId: number,
+    @Param('songId', ParseIntPipe) songId: number,
+    @Body() normalizeLyricsDto: NormalizeLyricsDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.songsLyricsService.normalizeLyrics(
+        songId,
+        normalizeLyricsDto.lyricIds,
+      );
+      res.status(HttpStatus.OK).send(result);
     } catch (e) {
       catchHandle(e);
     }
