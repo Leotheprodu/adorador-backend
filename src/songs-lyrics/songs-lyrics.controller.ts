@@ -18,14 +18,19 @@ import {
 import { SongsLyricsService } from './songs-lyrics.service';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
 import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
+import { NormalizeLyricsDto } from './dto/normalize-lyrics.dto';
+import { ParseLyricsTextDto } from './dto/parse-lyrics-text.dto';
 import { ApiTags } from '@nestjs/swagger';
 import {
   ApiUploadLyricsFile,
+  ApiParseLyricsText,
   ApiCreateLyric,
   ApiGetAllLyrics,
   ApiGetLyric,
   ApiUpdateLyric,
   ApiDeleteLyric,
+  ApiDeleteAllLyrics,
+  ApiNormalizeLyrics,
 } from './songs-lyrics.swagger';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import { Response } from 'express';
@@ -53,10 +58,10 @@ export class SongsLyricsController {
   @ApiUploadLyricsFile()
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async uploadLyricsWithChordsByFile(
     @UploadedFile() file: Express.Multer.File,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -82,12 +87,35 @@ export class SongsLyricsController {
     }
   }
 
-  @ApiCreateLyric()
-  @Post()
-  /* @CheckUserMemberOfBand({
+  @ApiParseLyricsText()
+  @Post('parse-text')
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  })  */
+  })
+  async parseLyricsFromText(
+    @Body() parseLyricsTextDto: ParseLyricsTextDto,
+    @Param('bandId', ParseIntPipe) bandId: number,
+    @Res() res: Response,
+    @Param('songId', ParseIntPipe) songId: number,
+  ) {
+    try {
+      await this.songsLyricsService.parseAndSaveLyricsFromText(
+        parseLyricsTextDto.textContent,
+        songId,
+      );
+      res.status(HttpStatus.OK).send({ message: 'Lyrics parsed and saved' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @ApiCreateLyric()
+  @Post()
+  @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
   async create(
     @Body() createSongsLyricDto: CreateSongsLyricDto,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -129,10 +157,10 @@ export class SongsLyricsController {
 
   @ApiGetAllLyrics()
   @Get()
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async findAll(
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -151,10 +179,10 @@ export class SongsLyricsController {
 
   @ApiGetLyric()
   @Get(':id')
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -174,10 +202,10 @@ export class SongsLyricsController {
 
   @ApiUpdateLyric()
   @Patch(':id')
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async update(
     @GetUser() user: JwtPayload,
     @Res() res: Response,
@@ -217,10 +245,10 @@ export class SongsLyricsController {
   }
 
   @Patch()
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async updateArrayOfLyrics(
     @GetUser() user: JwtPayload,
     @Res() res: Response,
@@ -245,13 +273,54 @@ export class SongsLyricsController {
     }
   }
 
-  @ApiDeleteLyric()
-  @Delete(':id')
-  /* @CheckUserMemberOfBand({
+  @ApiNormalizeLyrics()
+  @Post('normalize')
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-    isAdmin: true,
-  }) */
+  })
+  async normalizeLyrics(
+    @Param('bandId', ParseIntPipe) bandId: number,
+    @Param('songId', ParseIntPipe) songId: number,
+    @Body() normalizeLyricsDto: NormalizeLyricsDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.songsLyricsService.normalizeLyrics(
+        songId,
+        normalizeLyricsDto.lyricIds,
+      );
+      res.status(HttpStatus.OK).send(result);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @ApiDeleteAllLyrics()
+  @Delete('all')
+  @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
+  async removeAll(
+    @Param('bandId', ParseIntPipe) bandId: number,
+    @Param('songId', ParseIntPipe) songId: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.songsLyricsService.removeAllLyrics(songId);
+      res.status(HttpStatus.OK).send(result);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @ApiDeleteLyric()
+  @Delete(':id')
+  @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
   async remove(
     @Param('id', ParseIntPipe) id: number,
     @Param('bandId', ParseIntPipe) bandId: number,

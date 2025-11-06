@@ -62,6 +62,67 @@ export function ApiUploadLyricsFile() {
   );
 }
 
+export function ApiParseLyricsText() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Parse and save lyrics with chords from text',
+      description:
+        'Send lyrics and chords as plain text to be parsed and saved. Uses the same parsing logic as file upload. User must be a member of the band.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'bandId',
+      description: 'Band ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiParam({
+      name: 'songId',
+      description: 'Song ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          textContent: {
+            type: 'string',
+            example: `[Verse]
+C       G       Am      F
+Amazing grace how sweet the sound
+    G           C
+That saved a wretch like me
+
+[Chorus]
+F       G       C
+I once was lost but now am found
+F       G           C
+Was blind but now I see`,
+            description:
+              'Text content with lyrics and chords. Format: Structure tags [Verse], [Chorus], etc., followed by chord line and lyrics line.',
+          },
+        },
+        required: ['textContent'],
+      },
+    }),
+    ApiOkResponse({
+      description: 'Lyrics parsed and saved successfully',
+      schema: {
+        example: {
+          message: 'Lyrics parsed and saved',
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Text content is empty or invalid format',
+    }),
+    ApiUnauthorizedResponse({
+      description: 'User is not authenticated or not a member of the band',
+    }),
+  );
+}
+
 export function ApiCreateLyric() {
   return applyDecorators(
     ApiOperation({
@@ -244,11 +305,105 @@ export function ApiUpdateLyric() {
   );
 }
 
+export function ApiNormalizeLyrics() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Normalize lyrics',
+      description:
+        'Apply normalization rules to existing lyrics. This applies the same formatting rules used when uploading from a txt file: lowercase text with first letter capitalized, divine words capitalized, removal of punctuation and special characters at the beginning and end of words.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'bandId',
+      description: 'Band ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiParam({
+      name: 'songId',
+      description: 'Song ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          lyricIds: {
+            type: 'array',
+            items: {
+              type: 'number',
+            },
+            example: [1, 2, 3, 4, 5],
+            description: 'Array of lyric IDs to normalize',
+          },
+        },
+        required: ['lyricIds'],
+      },
+    }),
+    ApiOkResponse({
+      description: 'Lyrics normalized successfully',
+      schema: {
+        example: {
+          message: 'Normalized 5 of 5 lyrics',
+          results: {
+            success: [1, 2, 3, 4, 5],
+            failed: [],
+            notFound: [],
+          },
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Invalid request body or no lyric IDs provided',
+    }),
+    ApiUnauthorizedResponse({
+      description: 'User is not authenticated',
+    }),
+  );
+}
+
+export function ApiDeleteAllLyrics() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Delete all lyrics from a song',
+      description:
+        'Delete all lyric sections and their associated chords from a song. User must be an admin of the band. Useful for replacing entire song lyrics.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'bandId',
+      description: 'Band ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiParam({
+      name: 'songId',
+      description: 'Song ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiOkResponse({
+      description: 'All lyrics deleted successfully',
+      schema: {
+        example: {
+          deletedLyrics: 15,
+          message: 'Deleted 15 lyrics and their associated chords',
+        },
+      },
+    }),
+    ApiUnauthorizedResponse({
+      description: 'User is not authenticated or not an admin of the band',
+    }),
+  );
+}
+
 export function ApiDeleteLyric() {
   return applyDecorators(
     ApiOperation({
       summary: 'Delete lyric',
-      description: 'Delete a lyric section by its ID.',
+      description:
+        'Delete a lyric section by its ID. User must be an admin of the band.',
     }),
     ApiBearerAuth(),
     ApiParam({
@@ -281,7 +436,7 @@ export function ApiDeleteLyric() {
       description: 'Lyric not deleted',
     }),
     ApiUnauthorizedResponse({
-      description: 'User is not authenticated',
+      description: 'User is not authenticated or not an admin of the band',
     }),
   );
 }

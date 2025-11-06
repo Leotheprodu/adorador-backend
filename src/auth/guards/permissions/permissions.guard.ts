@@ -127,11 +127,12 @@ export class PermissionsGuard implements CanActivate {
     }
 
     // Revisar si el usuario es miembro de la banda
-    /* try {
+    try {
       isMemberOfBand(checkUserIsMemberOfBand, userPayload, request);
     } catch (error) {
-      throw new ForbiddenException('User is not a member of the band.');
-    } */
+      console.log('User is not a member of the band or not admin.');
+      throw new ForbiddenException(error.message);
+    }
 
     return true;
   }

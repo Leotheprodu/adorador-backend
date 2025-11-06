@@ -8,6 +8,10 @@ export const isMemberOfBand = (
   userPayload: JwtPayload,
   request: Request,
 ) => {
+  if (!checkUserIsMemberOfBand) {
+    return true; // Si no hay configuración, permitir acceso
+  }
+
   const { checkBy, key, isAdmin } = checkUserIsMemberOfBand;
   const bandId =
     checkBy === 'paramBandId' ? request.params[key] : request.body[key];
