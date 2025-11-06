@@ -55,10 +55,10 @@ export class SongsLyricsController {
   @ApiUploadLyricsFile()
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async uploadLyricsWithChordsByFile(
     @UploadedFile() file: Express.Multer.File,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -86,10 +86,10 @@ export class SongsLyricsController {
 
   @ApiCreateLyric()
   @Post()
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  })  */
+  })
   async create(
     @Body() createSongsLyricDto: CreateSongsLyricDto,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -131,10 +131,10 @@ export class SongsLyricsController {
 
   @ApiGetAllLyrics()
   @Get()
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async findAll(
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -153,10 +153,10 @@ export class SongsLyricsController {
 
   @ApiGetLyric()
   @Get(':id')
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async findOne(
     @Param('id', ParseIntPipe) id: number,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -176,10 +176,10 @@ export class SongsLyricsController {
 
   @ApiUpdateLyric()
   @Patch(':id')
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async update(
     @GetUser() user: JwtPayload,
     @Res() res: Response,
@@ -219,10 +219,10 @@ export class SongsLyricsController {
   }
 
   @Patch()
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async updateArrayOfLyrics(
     @GetUser() user: JwtPayload,
     @Res() res: Response,
@@ -249,10 +249,10 @@ export class SongsLyricsController {
 
   @ApiNormalizeLyrics()
   @Patch('normalize')
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-  }) */
+  })
   async normalizeLyrics(
     @Param('bandId', ParseIntPipe) bandId: number,
     @Param('songId', ParseIntPipe) songId: number,
@@ -272,11 +272,11 @@ export class SongsLyricsController {
 
   @ApiDeleteLyric()
   @Delete(':id')
-  /* @CheckUserMemberOfBand({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
     isAdmin: true,
-  }) */
+  })
   async remove(
     @Param('id', ParseIntPipe) id: number,
     @Param('bandId', ParseIntPipe) bandId: number,
