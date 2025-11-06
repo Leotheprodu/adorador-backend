@@ -247,6 +247,24 @@ describe('isMemberOfBand', () => {
   });
 
   describe('Edge cases', () => {
+    it('should return true when checkUserIsMemberOfBand is undefined', () => {
+      const userPayload = mockUserPayload([]);
+      const request = mockRequest({ bandId: '10' });
+
+      const result = isMemberOfBand(undefined, userPayload, request);
+
+      expect(result).toBe(true);
+    });
+
+    it('should return true when checkUserIsMemberOfBand is null', () => {
+      const userPayload = mockUserPayload([]);
+      const request = mockRequest({ bandId: '10' });
+
+      const result = isMemberOfBand(null, userPayload, request);
+
+      expect(result).toBe(true);
+    });
+
     it('should handle bandId as number in params', () => {
       const userPayload = mockUserPayload([
         {

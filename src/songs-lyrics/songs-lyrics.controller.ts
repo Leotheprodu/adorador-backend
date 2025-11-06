@@ -19,14 +19,17 @@ import { SongsLyricsService } from './songs-lyrics.service';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
 import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
 import { NormalizeLyricsDto } from './dto/normalize-lyrics.dto';
+import { ParseLyricsTextDto } from './dto/parse-lyrics-text.dto';
 import { ApiTags } from '@nestjs/swagger';
 import {
   ApiUploadLyricsFile,
+  ApiParseLyricsText,
   ApiCreateLyric,
   ApiGetAllLyrics,
   ApiGetLyric,
   ApiUpdateLyric,
   ApiDeleteLyric,
+  ApiDeleteAllLyrics,
   ApiNormalizeLyrics,
 } from './songs-lyrics.swagger';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
@@ -79,6 +82,29 @@ export class SongsLyricsController {
         songId,
       );
       res.status(HttpStatus.OK).send({ message: 'Lyrics uploaded' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @ApiParseLyricsText()
+  @Post('parse-text')
+  @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
+  async parseLyricsFromText(
+    @Body() parseLyricsTextDto: ParseLyricsTextDto,
+    @Param('bandId', ParseIntPipe) bandId: number,
+    @Res() res: Response,
+    @Param('songId', ParseIntPipe) songId: number,
+  ) {
+    try {
+      await this.songsLyricsService.parseAndSaveLyricsFromText(
+        parseLyricsTextDto.textContent,
+        songId,
+      );
+      res.status(HttpStatus.OK).send({ message: 'Lyrics parsed and saved' });
     } catch (e) {
       catchHandle(e);
     }
@@ -248,7 +274,7 @@ export class SongsLyricsController {
   }
 
   @ApiNormalizeLyrics()
-  @Patch('normalize')
+  @Post('normalize')
   @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
@@ -270,12 +296,30 @@ export class SongsLyricsController {
     }
   }
 
+  @ApiDeleteAllLyrics()
+  @Delete('all')
+  @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
+  async removeAll(
+    @Param('bandId', ParseIntPipe) bandId: number,
+    @Param('songId', ParseIntPipe) songId: number,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.songsLyricsService.removeAllLyrics(songId);
+      res.status(HttpStatus.OK).send(result);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
   @ApiDeleteLyric()
   @Delete(':id')
   @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-    isAdmin: true,
   })
   async remove(
     @Param('id', ParseIntPipe) id: number,

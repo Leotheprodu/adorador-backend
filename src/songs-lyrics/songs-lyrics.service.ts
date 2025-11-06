@@ -86,12 +86,46 @@ export class SongsLyricsService {
     });
   }
 
+  async removeAllLyrics(songId: number) {
+    // Primero obtener todos los IDs de lyrics de la canción
+    const lyrics = await this.prisma.songs_lyrics.findMany({
+      where: { songId },
+      select: { id: true },
+    });
+
+    const lyricIds = lyrics.map((lyric) => lyric.id);
+
+    // Eliminar todos los acordes relacionados con estas letras
+    if (lyricIds.length > 0) {
+      await this.prisma.songs_Chords.deleteMany({
+        where: {
+          lyricId: {
+            in: lyricIds,
+          },
+        },
+      });
+
+      // Eliminar todas las letras de la canción
+      await this.prisma.songs_lyrics.deleteMany({
+        where: { songId },
+      });
+    }
+
+    return {
+      deletedLyrics: lyricIds.length,
+      message: `Deleted ${lyricIds.length} lyrics and their associated chords`,
+    };
+  }
+
   async parseAndSaveLyricsWithChords(fileBuffer: Buffer, songId: number) {
     const fileContent = fileBuffer.toString('utf-8');
+    return await this.parseAndSaveLyricsFromText(fileContent, songId);
+  }
 
-    // Parsear contenido del archivo
+  async parseAndSaveLyricsFromText(textContent: string, songId: number) {
+    // Parsear contenido del texto
     const { cleanedLines: lines, lineMapping: lineToOriginalMap } =
-      this.lyricsParser.parseFileContent(fileContent);
+      this.lyricsParser.parseFileContent(textContent);
 
     // Validar que no haya más de 5 acordes por línea
     const validation = this.lyricsParser.validateMaxChordsPerLine(lines);
