@@ -11,5 +11,6 @@ import { AuthModule } from '../auth/auth.module';
   imports: [forwardRef(() => EventsModule), AuthModule],
   controllers: [EventsController, EventsGatewayController],
   providers: [EventsService, EventsGateway, PrismaService, MembershipsService],
+  exports: [EventsGateway, EventsService],
 })
 export class EventsModule {}

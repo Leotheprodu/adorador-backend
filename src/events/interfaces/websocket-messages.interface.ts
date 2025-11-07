@@ -14,6 +14,11 @@ export interface OptimizedLiveMessage {
   t: string; // text content
 }
 
+export interface OptimizedSongUpdateMessage {
+  sid: number; // song id
+  ct: 'lyrics' | 'info' | 'all'; // change type: lyrics, info (metadata), or all
+}
+
 // Estructura base para todos los mensajes WebSocket
 export interface BaseWebSocketMessage<T = any> {
   e: string; // event id
@@ -27,12 +32,15 @@ export type LyricWebSocketMessage = BaseWebSocketMessage<OptimizedLyricMessage>;
 export type EventSongWebSocketMessage =
   BaseWebSocketMessage<OptimizedEventSongMessage>;
 export type LiveWebSocketMessage = BaseWebSocketMessage<OptimizedLiveMessage>;
+export type SongUpdateWebSocketMessage =
+  BaseWebSocketMessage<OptimizedSongUpdateMessage>;
 
 // Union type para todos los mensajes
 export type WebSocketMessage =
   | LyricWebSocketMessage
   | EventSongWebSocketMessage
-  | LiveWebSocketMessage;
+  | LiveWebSocketMessage
+  | SongUpdateWebSocketMessage;
 
 // Funciones de conversión para mantener compatibilidad
 export const toLegacyLyricFormat = (msg: OptimizedLyricMessage) => ({
@@ -58,6 +66,18 @@ export const toLegacyLiveMessageFormat = (msg: OptimizedLiveMessage) => msg.t;
 export const fromLegacyLiveMessageFormat = (
   text: string,
 ): OptimizedLiveMessage => ({ t: text });
+
+export const toLegacySongUpdateFormat = (msg: OptimizedSongUpdateMessage) => ({
+  songId: msg.sid,
+  changeType: msg.ct,
+});
+export const fromLegacySongUpdateFormat = (legacy: {
+  songId: number;
+  changeType: 'lyrics' | 'info' | 'all';
+}): OptimizedSongUpdateMessage => ({
+  sid: legacy.songId,
+  ct: legacy.changeType,
+});
 
 // Utilidades para comprimir/descomprimir mensajes
 export const compressMessage = <T>(
@@ -91,4 +111,13 @@ export const isValidEventSongMessage = (
 
 export const isValidLiveMessage = (msg: any): msg is OptimizedLiveMessage => {
   return typeof msg.t === 'string';
+};
+
+export const isValidSongUpdateMessage = (
+  msg: any,
+): msg is OptimizedSongUpdateMessage => {
+  return (
+    typeof msg.sid === 'number' &&
+    (msg.ct === 'lyrics' || msg.ct === 'info' || msg.ct === 'all')
+  );
 };
