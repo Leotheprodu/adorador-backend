@@ -1,24 +1,34 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
 import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
 import { PrismaService } from '../prisma.service';
 import { LyricsNormalizerService } from './services/lyrics-normalizer.service';
 import { ChordProcessorService } from './services/chord-processor.service';
 import { LyricsParserService } from './services/lyrics-parser.service';
+import { EventsGateway } from '../events/events.gateway';
+import { compressMessage } from '../events/interfaces/websocket-messages.interface';
 
 @Injectable()
 export class SongsLyricsService {
+  private readonly logger = new Logger(SongsLyricsService.name);
+
   constructor(
     private prisma: PrismaService,
     private lyricsNormalizer: LyricsNormalizerService,
     private chordProcessor: ChordProcessorService,
     private lyricsParser: LyricsParserService,
+    private eventsGateway: EventsGateway,
   ) {}
 
   async create(data: CreateSongsLyricDto, songId: number) {
-    return await this.prisma.songs_lyrics.create({
+    const result = await this.prisma.songs_lyrics.create({
       data: { ...data, songId },
     });
+
+    // Notificar a todos los eventos que contienen esta canción
+    await this.notifySongUpdate(songId, 'lyrics');
+
+    return result;
   }
 
   async findAll(songId: number) {
@@ -51,15 +61,76 @@ export class SongsLyricsService {
     });
   }
 
+  /**
+   * Notifica a todos los eventos que contienen una canción que fue actualizada
+   */
+  private async notifySongUpdate(
+    songId: number,
+    changeType: 'lyrics' | 'info' | 'all' = 'lyrics',
+  ) {
+    try {
+      // Encontrar todos los eventos que contienen esta canción
+      const eventsWithSong = await this.prisma.songsEvents.findMany({
+        where: { songId },
+        include: {
+          event: true,
+        },
+      });
+
+      if (eventsWithSong.length > 0) {
+        this.logger.log(
+          `Canción ${songId} actualizada. Notificando a ${eventsWithSong.length} eventos (tipo: ${changeType})`,
+        );
+
+        // Emitir evento WebSocket a cada evento afectado
+        for (const eventSong of eventsWithSong) {
+          const eventId = eventSong.event.id;
+
+          try {
+            // Formato comprimido
+            const message = compressMessage(
+              eventId.toString(),
+              {
+                sid: songId,
+                ct: changeType,
+              },
+              'system',
+            );
+
+            // Emitir a todos los clientes conectados a este evento
+            this.eventsGateway.server.emit(`songUpdated-${eventId}`, message);
+
+            this.logger.log(
+              `✅ Emitido songUpdated-${eventId} para canción ${songId} (tipo: ${changeType})`,
+            );
+          } catch (error) {
+            this.logger.error(
+              `❌ Error emitiendo WebSocket para evento ${eventId}: ${error.message}`,
+            );
+          }
+        }
+      }
+    } catch (error) {
+      this.logger.error(
+        `Error notificando actualización de canción ${songId}: ${error.message}`,
+      );
+    }
+  }
+
   async update(
     id: number,
     songId: number,
     updateSongsLyricDto: UpdateSongsLyricDto,
   ) {
-    return await this.prisma.songs_lyrics.update({
+    const result = await this.prisma.songs_lyrics.update({
       where: { id, songId },
       data: updateSongsLyricDto,
     });
+
+    // Notificar a todos los eventos que contienen esta canción
+    await this.notifySongUpdate(songId, 'lyrics');
+
+    return result;
   }
 
   async updateArrayOfLyrics(songId: number, lyrics: UpdateSongsLyricDto[]) {
@@ -69,7 +140,12 @@ export class SongsLyricsService {
         data: { position: lyric.position },
       }),
     );
-    return await Promise.all(updatePromises);
+    const result = await Promise.all(updatePromises);
+
+    // Notificar a todos los eventos que contienen esta canción
+    await this.notifySongUpdate(songId, 'lyrics');
+
+    return result;
   }
 
   async remove(id: number, songId: number) {
@@ -81,9 +157,14 @@ export class SongsLyricsService {
         where: { lyricId: id },
       });
     }
-    return await this.prisma.songs_lyrics.delete({
+    const result = await this.prisma.songs_lyrics.delete({
       where: { id, songId },
     });
+
+    // Notificar a todos los eventos que contienen esta canción
+    await this.notifySongUpdate(songId, 'lyrics');
+
+    return result;
   }
 
   async removeAllLyrics(songId: number) {
@@ -109,6 +190,9 @@ export class SongsLyricsService {
       await this.prisma.songs_lyrics.deleteMany({
         where: { songId },
       });
+
+      // Notificar a todos los eventos que contienen esta canción
+      await this.notifySongUpdate(songId, 'lyrics');
     }
 
     return {
@@ -279,6 +363,9 @@ export class SongsLyricsService {
       position++;
     }
 
+    // Notificar a todos los eventos que contienen esta canción
+    await this.notifySongUpdate(songId, 'lyrics');
+
     return {
       message:
         'Lyrics and chords processed with validated notes and qualities!',
@@ -324,6 +411,11 @@ export class SongsLyricsService {
           error: error.message || 'Unknown error',
         });
       }
+    }
+
+    // Notificar a todos los eventos que contienen esta canción si hubo actualizaciones exitosas
+    if (results.success.length > 0) {
+      await this.notifySongUpdate(songId, 'lyrics');
     }
 
     return {

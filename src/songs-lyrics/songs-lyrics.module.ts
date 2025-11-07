@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { SongsLyricsService } from './songs-lyrics.service';
 import { SongsLyricsController } from './songs-lyrics.controller';
 import { MembershipsService } from '../memberships/memberships.service';
@@ -7,8 +7,10 @@ import { SongsService } from '../songs/songs.service';
 import { LyricsNormalizerService } from './services/lyrics-normalizer.service';
 import { ChordProcessorService } from './services/chord-processor.service';
 import { LyricsParserService } from './services/lyrics-parser.service';
+import { EventsModule } from '../events/events.module';
 
 @Module({
+  imports: [forwardRef(() => EventsModule)],
   controllers: [SongsLyricsController],
   providers: [
     SongsLyricsService,

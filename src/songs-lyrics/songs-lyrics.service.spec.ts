@@ -4,10 +4,12 @@ import { PrismaService } from '../prisma.service';
 import { LyricsNormalizerService } from './services/lyrics-normalizer.service';
 import { ChordProcessorService } from './services/chord-processor.service';
 import { LyricsParserService } from './services/lyrics-parser.service';
+import { EventsGateway } from '../events/events.gateway';
 
 describe('SongsLyricsService', () => {
   let service: SongsLyricsService;
   let prismaService: PrismaService;
+  let eventsGateway: any;
 
   const mockPrismaService = {
     songs_lyrics: {
@@ -22,6 +24,15 @@ describe('SongsLyricsService', () => {
       findMany: jest.fn(),
       deleteMany: jest.fn(),
       create: jest.fn(),
+    },
+    songsEvents: {
+      findMany: jest.fn(),
+    },
+  };
+
+  const mockEventsGateway = {
+    server: {
+      emit: jest.fn(),
     },
   };
 
@@ -63,11 +74,16 @@ describe('SongsLyricsService', () => {
           provide: LyricsParserService,
           useValue: mockLyricsParser,
         },
+        {
+          provide: EventsGateway,
+          useValue: mockEventsGateway,
+        },
       ],
     }).compile();
 
     service = module.get<SongsLyricsService>(SongsLyricsService);
     prismaService = module.get<PrismaService>(PrismaService);
+    eventsGateway = module.get<EventsGateway>(EventsGateway);
 
     // Reset mocks
     jest.clearAllMocks();
@@ -791,6 +807,242 @@ How sweet`;
       expect(mockLyricsNormalizer.normalize).toHaveBeenCalledWith(
         'dios es amor y jesus es señor',
       );
+    });
+  });
+
+  describe('WebSocket Notifications', () => {
+    const mockEventsWithSong = [
+      {
+        id: 1,
+        songId: 1,
+        eventId: 100,
+        event: { id: 100, name: 'Test Event 1' },
+      },
+      {
+        id: 2,
+        songId: 1,
+        eventId: 200,
+        event: { id: 200, name: 'Test Event 2' },
+      },
+    ];
+
+    beforeEach(() => {
+      mockPrismaService.songsEvents.findMany.mockResolvedValue(
+        mockEventsWithSong,
+      );
+    });
+
+    describe('create with notifications', () => {
+      it('should notify events when creating a lyric', async () => {
+        const createDto = {
+          lyrics: 'Amazing grace',
+          position: 1,
+          structureId: 2,
+        };
+        const songId = 1;
+        const mockLyric = {
+          id: 1,
+          songId: 1,
+          lyrics: 'Amazing grace',
+          position: 1,
+          structureId: 2,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        mockPrismaService.songs_lyrics.create.mockResolvedValue(mockLyric);
+
+        await service.create(createDto, songId);
+
+        expect(mockPrismaService.songsEvents.findMany).toHaveBeenCalledWith({
+          where: { songId },
+          include: { event: true },
+        });
+
+        expect(eventsGateway.server.emit).toHaveBeenCalledTimes(2);
+        expect(eventsGateway.server.emit).toHaveBeenCalledWith(
+          'songUpdated-100',
+          expect.objectContaining({
+            e: '100',
+            m: expect.objectContaining({
+              sid: songId,
+              ct: 'lyrics',
+            }),
+          }),
+        );
+        expect(eventsGateway.server.emit).toHaveBeenCalledWith(
+          'songUpdated-200',
+          expect.objectContaining({
+            e: '200',
+            m: expect.objectContaining({
+              sid: songId,
+              ct: 'lyrics',
+            }),
+          }),
+        );
+      });
+    });
+
+    describe('update with notifications', () => {
+      it('should notify events when updating a lyric', async () => {
+        const lyricId = 1;
+        const songId = 1;
+        const updateDto = {
+          lyrics: 'Updated lyrics',
+        };
+        const mockUpdatedLyric = {
+          id: lyricId,
+          songId,
+          lyrics: 'Updated lyrics',
+          position: 1,
+          structureId: 2,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        mockPrismaService.songs_lyrics.update.mockResolvedValue(
+          mockUpdatedLyric,
+        );
+
+        await service.update(lyricId, songId, updateDto);
+
+        expect(mockPrismaService.songsEvents.findMany).toHaveBeenCalledWith({
+          where: { songId },
+          include: { event: true },
+        });
+
+        expect(eventsGateway.server.emit).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('updateArrayOfLyrics with notifications', () => {
+      it('should notify events when updating multiple lyrics', async () => {
+        const songId = 1;
+        const lyrics = [
+          { id: 1, position: 2 },
+          { id: 2, position: 1 },
+        ];
+
+        mockPrismaService.songs_lyrics.update
+          .mockResolvedValueOnce({ id: 1, position: 2 })
+          .mockResolvedValueOnce({ id: 2, position: 1 });
+
+        await service.updateArrayOfLyrics(songId, lyrics);
+
+        expect(mockPrismaService.songsEvents.findMany).toHaveBeenCalledWith({
+          where: { songId },
+          include: { event: true },
+        });
+
+        expect(eventsGateway.server.emit).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('remove with notifications', () => {
+      it('should notify events when removing a lyric', async () => {
+        const lyricId = 1;
+        const songId = 1;
+        const mockLyric = {
+          id: lyricId,
+          songId,
+          lyrics: 'Test lyric',
+          position: 1,
+          structureId: 2,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        mockPrismaService.songs_Chords.findMany.mockResolvedValue([]);
+        mockPrismaService.songs_lyrics.delete.mockResolvedValue(mockLyric);
+
+        await service.remove(lyricId, songId);
+
+        expect(mockPrismaService.songsEvents.findMany).toHaveBeenCalledWith({
+          where: { songId },
+          include: { event: true },
+        });
+
+        expect(eventsGateway.server.emit).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('removeAllLyrics with notifications', () => {
+      it('should notify events when removing all lyrics', async () => {
+        const songId = 1;
+        const mockLyrics = [{ id: 1 }, { id: 2 }];
+
+        mockPrismaService.songs_lyrics.findMany.mockResolvedValue(mockLyrics);
+        mockPrismaService.songs_Chords.deleteMany.mockResolvedValue({
+          count: 5,
+        });
+        mockPrismaService.songs_lyrics.deleteMany.mockResolvedValue({
+          count: 2,
+        });
+
+        await service.removeAllLyrics(songId);
+
+        expect(mockPrismaService.songsEvents.findMany).toHaveBeenCalledWith({
+          where: { songId },
+          include: { event: true },
+        });
+
+        expect(eventsGateway.server.emit).toHaveBeenCalledTimes(2);
+      });
+    });
+
+    describe('notification error handling', () => {
+      it('should not fail operations if WebSocket emission fails', async () => {
+        const createDto = {
+          lyrics: 'Amazing grace',
+          position: 1,
+          structureId: 2,
+        };
+        const songId = 1;
+        const mockLyric = {
+          id: 1,
+          songId: 1,
+          lyrics: 'Amazing grace',
+          position: 1,
+          structureId: 2,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        mockPrismaService.songs_lyrics.create.mockResolvedValue(mockLyric);
+        eventsGateway.server.emit.mockImplementation(() => {
+          throw new Error('WebSocket error');
+        });
+
+        // No debería lanzar error
+        const result = await service.create(createDto, songId);
+
+        expect(result).toEqual(mockLyric);
+      });
+
+      it('should not notify if song is not in any events', async () => {
+        const createDto = {
+          lyrics: 'Amazing grace',
+          position: 1,
+          structureId: 2,
+        };
+        const songId = 1;
+        const mockLyric = {
+          id: 1,
+          songId: 1,
+          lyrics: 'Amazing grace',
+          position: 1,
+          structureId: 2,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        mockPrismaService.songs_lyrics.create.mockResolvedValue(mockLyric);
+        mockPrismaService.songsEvents.findMany.mockResolvedValue([]);
+
+        await service.create(createDto, songId);
+
+        expect(eventsGateway.server.emit).not.toHaveBeenCalled();
+      });
     });
   });
 });

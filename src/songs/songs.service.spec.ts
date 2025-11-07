@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SongsService } from './songs.service';
 import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 
 describe('SongsService', () => {
   let service: SongsService;
   let prismaService: any;
+  let eventsGateway: any;
 
   const mockSong = {
     id: 1,
@@ -34,6 +36,15 @@ describe('SongsService', () => {
       delete: jest.fn(),
       count: jest.fn(),
     },
+    songsEvents: {
+      findMany: jest.fn(),
+    },
+  };
+
+  const mockEventsGateway = {
+    server: {
+      emit: jest.fn(),
+    },
   };
 
   beforeEach(async () => {
@@ -46,11 +57,16 @@ describe('SongsService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: EventsGateway,
+          useValue: mockEventsGateway,
+        },
       ],
     }).compile();
 
     service = module.get<SongsService>(SongsService);
     prismaService = module.get<PrismaService>(PrismaService);
+    eventsGateway = module.get<EventsGateway>(EventsGateway);
   });
 
   it('should be defined', () => {
@@ -117,7 +133,7 @@ describe('SongsService', () => {
   });
 
   describe('update', () => {
-    it('should update a song', async () => {
+    it('should update a song without events', async () => {
       const songId = 1;
       const bandId = 1;
       const updateSongDto = {
@@ -126,6 +142,7 @@ describe('SongsService', () => {
 
       const updatedSong = { ...mockSong, title: 'Updated Song' };
       prismaService.songs.update.mockResolvedValue(updatedSong);
+      prismaService.songsEvents.findMany.mockResolvedValue([]);
 
       const result = await service.update(songId, updateSongDto, bandId);
 
@@ -134,6 +151,133 @@ describe('SongsService', () => {
         where: { id: songId, bandId },
         data: updateSongDto,
       });
+      expect(prismaService.songsEvents.findMany).toHaveBeenCalledWith({
+        where: { songId },
+        include: { event: true },
+      });
+      expect(eventsGateway.server.emit).not.toHaveBeenCalled();
+    });
+
+    it('should update a song and notify events when song is in events', async () => {
+      const songId = 1;
+      const bandId = 1;
+      const updateSongDto = {
+        title: 'Updated Song',
+      };
+
+      const updatedSong = { ...mockSong, title: 'Updated Song' };
+      const mockEventsWithSong = [
+        {
+          id: 1,
+          songId: 1,
+          eventId: 100,
+          event: { id: 100, name: 'Test Event' },
+        },
+        {
+          id: 2,
+          songId: 1,
+          eventId: 200,
+          event: { id: 200, name: 'Test Event 2' },
+        },
+      ];
+
+      prismaService.songs.update.mockResolvedValue(updatedSong);
+      prismaService.songsEvents.findMany.mockResolvedValue(mockEventsWithSong);
+
+      const result = await service.update(songId, updateSongDto, bandId);
+
+      expect(result).toEqual(updatedSong);
+      expect(prismaService.songsEvents.findMany).toHaveBeenCalledWith({
+        where: { songId },
+        include: { event: true },
+      });
+
+      // Verificar que se emitieron eventos WebSocket para cada evento
+      expect(eventsGateway.server.emit).toHaveBeenCalledTimes(2);
+      expect(eventsGateway.server.emit).toHaveBeenCalledWith(
+        'songUpdated-100',
+        expect.objectContaining({
+          e: '100',
+          m: expect.objectContaining({
+            sid: songId,
+            ct: 'info',
+          }),
+          u: 'system',
+        }),
+      );
+      expect(eventsGateway.server.emit).toHaveBeenCalledWith(
+        'songUpdated-200',
+        expect.objectContaining({
+          e: '200',
+          m: expect.objectContaining({
+            sid: songId,
+            ct: 'info',
+          }),
+          u: 'system',
+        }),
+      );
+    });
+
+    it('should determine changeType as "info" when only metadata is updated', async () => {
+      const songId = 1;
+      const bandId = 1;
+      const updateSongDto = {
+        title: 'Updated Song',
+        artist: 'Updated Artist',
+      };
+
+      const updatedSong = { ...mockSong, ...updateSongDto };
+      const mockEventsWithSong = [
+        {
+          id: 1,
+          songId: 1,
+          eventId: 100,
+          event: { id: 100, name: 'Test Event' },
+        },
+      ];
+
+      prismaService.songs.update.mockResolvedValue(updatedSong);
+      prismaService.songsEvents.findMany.mockResolvedValue(mockEventsWithSong);
+
+      await service.update(songId, updateSongDto, bandId);
+
+      expect(eventsGateway.server.emit).toHaveBeenCalledWith(
+        'songUpdated-100',
+        expect.objectContaining({
+          m: expect.objectContaining({
+            ct: 'info',
+          }),
+        }),
+      );
+    });
+
+    it('should handle WebSocket emission errors gracefully', async () => {
+      const songId = 1;
+      const bandId = 1;
+      const updateSongDto = {
+        title: 'Updated Song',
+      };
+
+      const updatedSong = { ...mockSong, title: 'Updated Song' };
+      const mockEventsWithSong = [
+        {
+          id: 1,
+          songId: 1,
+          eventId: 100,
+          event: { id: 100, name: 'Test Event' },
+        },
+      ];
+
+      prismaService.songs.update.mockResolvedValue(updatedSong);
+      prismaService.songsEvents.findMany.mockResolvedValue(mockEventsWithSong);
+      eventsGateway.server.emit.mockImplementation(() => {
+        throw new Error('WebSocket error');
+      });
+
+      // No debería lanzar error, solo loggearlo
+      const result = await service.update(songId, updateSongDto, bandId);
+
+      expect(result).toEqual(updatedSong);
     });
   });
 
