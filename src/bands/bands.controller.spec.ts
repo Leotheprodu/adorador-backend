@@ -1,49 +1,30 @@
-import { Test, TestingModule } from '@nestjs/testing';
 import { BandsService } from './bands.service';
 
-describe('BandsController', () => {
+describe('BandsController - Simple Tests', () => {
   let service: BandsService;
 
-  beforeEach(async () => {
-    const mockService = {
+  beforeEach(() => {
+    service = {
       getBands: jest.fn(),
       getBandsByUserId: jest.fn(),
       createBand: jest.fn(),
       getBand: jest.fn(),
       updateBand: jest.fn(),
       deleteBand: jest.fn(),
-    };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [{ provide: BandsService, useValue: mockService }],
-    }).compile();
-
-    service = module.get<BandsService>(BandsService);
+    } as any;
   });
 
-  it('BandsService should be defined', () => {
+  it('should have BandsService dependency', () => {
     expect(service).toBeDefined();
   });
 
-  // Tests simplificados del servicio (ya testeado en bands.service.spec.ts)
-  describe('Service Methods', () => {
-    it('should have getBands method', () => {
+  describe('Service method availability', () => {
+    it('should have all required methods', () => {
       expect(service.getBands).toBeDefined();
-    });
-
-    it('should have createBand method', () => {
+      expect(service.getBandsByUserId).toBeDefined();
       expect(service.createBand).toBeDefined();
-    });
-
-    it('should have getBand method', () => {
       expect(service.getBand).toBeDefined();
-    });
-
-    it('should have updateBand method', () => {
       expect(service.updateBand).toBeDefined();
-    });
-
-    it('should have deleteBand method', () => {
       expect(service.deleteBand).toBeDefined();
     });
   });
