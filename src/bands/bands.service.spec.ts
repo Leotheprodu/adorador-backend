@@ -15,6 +15,27 @@ describe('BandsService', () => {
         update: jest.fn(),
         delete: jest.fn(),
       },
+      songs: {
+        findMany: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      songs_lyrics: {
+        findMany: jest.fn(),
+        deleteMany: jest.fn(),
+      },
+      songs_Chords: {
+        deleteMany: jest.fn(),
+      },
+      events: {
+        deleteMany: jest.fn(),
+      },
+      membersofBands: {
+        deleteMany: jest.fn(),
+      },
+      users: {
+        findUnique: jest.fn(),
+      },
+      $transaction: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -106,20 +127,63 @@ describe('BandsService', () => {
   });
 
   describe('createBand', () => {
-    it('should create a new band', async () => {
+    it('should create a band and add creator as admin member', async () => {
       const createBandDto = { name: 'New Band' };
+      const userId = 1;
       const mockBand = {
         id: 1,
         name: 'New Band',
         createdAt: new Date(),
         updatedAt: new Date(),
+        members: [
+          {
+            id: 1,
+            userId: 1,
+            bandId: 1,
+            role: 'Líder/Admin',
+            active: true,
+            isAdmin: true,
+            isEventManager: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            user: {
+              id: 1,
+              name: 'Test User',
+              phone: '+1234567890',
+            },
+          },
+        ],
       };
       prismaService.bands.create.mockResolvedValue(mockBand);
 
-      const result = await service.createBand(createBandDto);
+      const result = await service.createBand(createBandDto, userId);
 
       expect(prismaService.bands.create).toHaveBeenCalledWith({
-        data: createBandDto,
+        data: {
+          ...createBandDto,
+          members: {
+            create: {
+              userId,
+              role: 'Líder/Admin',
+              active: true,
+              isAdmin: true,
+              isEventManager: true,
+            },
+          },
+        },
+        include: {
+          members: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  name: true,
+                  phone: true,
+                },
+              },
+            },
+          },
+        },
       });
       expect(result).toEqual(mockBand);
     });
@@ -196,7 +260,7 @@ describe('BandsService', () => {
   });
 
   describe('deleteBand', () => {
-    it('should delete a band', async () => {
+    it('should delete a band with cascade deletion', async () => {
       const bandId = 1;
       const mockBand = {
         id: 1,
@@ -204,10 +268,43 @@ describe('BandsService', () => {
         createdAt: new Date(),
         updatedAt: new Date(),
       };
+
+      const mockSongs = [
+        {
+          id: 1,
+          lyrics: [
+            { id: 1, chords: [{ id: 1 }] },
+            { id: 2, chords: [] },
+          ],
+        },
+        {
+          id: 2,
+          lyrics: [],
+        },
+      ];
+
+      // Mock de $transaction para que ejecute el callback inmediatamente con prismaService
+      prismaService.$transaction.mockImplementation((callback) => {
+        return callback(prismaService);
+      });
+
+      // Mock de las operaciones dentro de la transacción
+      prismaService.songs.findMany.mockResolvedValue(mockSongs);
+      prismaService.songs_Chords.deleteMany.mockResolvedValue({ count: 1 });
+      prismaService.songs_lyrics.deleteMany.mockResolvedValue({ count: 2 });
+      prismaService.songs.deleteMany.mockResolvedValue({ count: 2 });
+      prismaService.events.deleteMany.mockResolvedValue({ count: 1 });
+      prismaService.membersofBands.deleteMany.mockResolvedValue({ count: 1 });
       prismaService.bands.delete.mockResolvedValue(mockBand);
 
       const result = await service.deleteBand(bandId);
 
+      expect(prismaService.$transaction).toHaveBeenCalled();
+      expect(prismaService.songs_Chords.deleteMany).toHaveBeenCalled();
+      expect(prismaService.songs_lyrics.deleteMany).toHaveBeenCalled();
+      expect(prismaService.songs.deleteMany).toHaveBeenCalled();
+      expect(prismaService.events.deleteMany).toHaveBeenCalled();
+      expect(prismaService.membersofBands.deleteMany).toHaveBeenCalled();
       expect(prismaService.bands.delete).toHaveBeenCalledWith({
         where: { id: bandId },
       });
