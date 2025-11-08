@@ -1,6 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { SongsChordsService } from './songs-chords.service';
 import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 
 describe('SongsChordsService', () => {
   let service: SongsChordsService;
@@ -14,6 +15,23 @@ describe('SongsChordsService', () => {
       update: jest.fn(),
       delete: jest.fn(),
     },
+    songs_lyrics: {
+      findUnique: jest.fn(),
+    },
+    songs: {
+      findMany: jest.fn(),
+    },
+    events: {
+      findMany: jest.fn(),
+    },
+  };
+
+  const mockEventsGateway = {
+    server: {
+      to: jest.fn().mockReturnValue({
+        emit: jest.fn(),
+      }),
+    },
   };
 
   beforeEach(async () => {
@@ -23,6 +41,10 @@ describe('SongsChordsService', () => {
         {
           provide: PrismaService,
           useValue: mockPrismaService,
+        },
+        {
+          provide: EventsGateway,
+          useValue: mockEventsGateway,
         },
       ],
     }).compile();

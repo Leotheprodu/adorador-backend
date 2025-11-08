@@ -30,6 +30,8 @@ model Users {
   memberships Memberships[]
   roles     Roles[]
   membersofBands MembersofBands[]
+  receivedInvitations BandInvitations[] @relation("InvitedUser")
+  sentInvitations     BandInvitations[] @relation("Inviter")
 }
 
 
@@ -71,6 +73,7 @@ model Bands {
   events  Events[]
   songs     Songs[]
   members   MembersofBands[]
+  invitations BandInvitations[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -87,6 +90,24 @@ model MembersofBands {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   isEventManager Boolean @default(false) // Controla si el miembro es el encargado de eventos de la banda
+}
+
+model BandInvitations {
+  id            Int      @id @default(autoincrement())
+  bandId        Int
+  invitedUserId Int
+  invitedBy     Int
+  status        String   @default("pending") // pending, accepted, rejected, expired
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  
+  band          Bands    @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  invitedUser   Users    @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  inviter       Users    @relation("Inviter", fields: [invitedBy], references: [id], onDelete: Cascade)
+  
+  @@index([invitedUserId, status])
+  @@index([bandId])
+  @@index([bandId, invitedUserId, status])
 }
 
 model Memberships {
