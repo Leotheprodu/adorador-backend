@@ -19,7 +19,7 @@ import { JwtUserMiddleware } from './middlewares/jwt-user.middleware';
     JwtModule.register({
       global: true,
       secret: process.env.JWT_ACCESS_SECRET || 'default-access-secret',
-      signOptions: { expiresIn: '15m' },
+      signOptions: { expiresIn: '30m' }, // Aumentado de 15m a 30m para mejor tolerancia a cold starts
     }),
   ],
   controllers: [AuthController],

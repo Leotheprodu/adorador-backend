@@ -75,14 +75,14 @@ export class AuthJwtService {
 
     const accessToken = this.jwtService.sign(payload, {
       secret: process.env.JWT_ACCESS_SECRET || 'default-access-secret',
-      expiresIn: '15m', // Token corto
+      expiresIn: '30m', // Aumentado de 15m a 30m para mejor tolerancia a cold starts
     });
 
     const refreshToken = this.jwtService.sign(
       { sub: userId, email },
       {
         secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
-        expiresIn: '7d', // Token largo
+        expiresIn: '30d', // Aumentado de 7d a 30d para mejor persistencia
       },
     );
 
@@ -99,14 +99,6 @@ export class AuthJwtService {
     return this.jwtService.verify(token, {
       secret: process.env.JWT_REFRESH_SECRET || 'default-refresh-secret',
     });
-  }
-
-  decodeToken(token: string): JwtPayload | null {
-    try {
-      return this.jwtService.decode(token) as JwtPayload;
-    } catch {
-      return null;
-    }
   }
 
   /**
