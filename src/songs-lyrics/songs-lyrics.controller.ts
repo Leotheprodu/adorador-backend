@@ -20,6 +20,7 @@ import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
 import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
 import { NormalizeLyricsDto } from './dto/normalize-lyrics.dto';
 import { ParseLyricsTextDto } from './dto/parse-lyrics-text.dto';
+import { ParseSingleLyricDto } from './dto/parse-single-lyric.dto';
 import { ApiTags } from '@nestjs/swagger';
 import {
   ApiUploadLyricsFile,
@@ -31,6 +32,7 @@ import {
   ApiDeleteLyric,
   ApiDeleteAllLyrics,
   ApiNormalizeLyrics,
+  ApiParseAndUpdateSingleLyric,
 } from './songs-lyrics.swagger';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import { Response } from 'express';
@@ -239,6 +241,40 @@ export class SongsLyricsController {
         );
       }
       res.status(HttpStatus.OK).send({ message: 'Lyric updated' });
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @ApiParseAndUpdateSingleLyric()
+  @Patch(':id/parse-and-update')
+  @CheckUserMemberOfBand({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
+  async parseAndUpdateSingleLyric(
+    @Param('bandId', ParseIntPipe) bandId: number,
+    @Param('songId', ParseIntPipe) songId: number,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() parseSingleLyricDto: ParseSingleLyricDto,
+    @Res() res: Response,
+  ) {
+    try {
+      const updatedLyric =
+        await this.songsLyricsService.parseAndUpdateSingleLyric(
+          id,
+          songId,
+          parseSingleLyricDto.textContent,
+        );
+
+      if (!updatedLyric) {
+        throw new HttpException(
+          'Lyric not updated',
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      res.status(HttpStatus.OK).send(updatedLyric);
     } catch (e) {
       catchHandle(e);
     }

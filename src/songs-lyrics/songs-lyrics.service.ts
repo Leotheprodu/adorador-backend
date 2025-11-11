@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common';
 import { CreateSongsLyricDto } from './dto/create-songs-lyric.dto';
 import { UpdateSongsLyricDto } from './dto/update-songs-lyric.dto';
 import { PrismaService } from '../prisma.service';
@@ -422,5 +422,167 @@ export class SongsLyricsService {
       message: `Normalized ${results.success.length} of ${lyricIds.length} lyrics`,
       results,
     };
+  }
+
+  /**
+   * Parsea y actualiza una sola línea de letra con acordes
+   * Mantiene el ID de la letra pero reemplaza acordes y texto
+   */
+  async parseAndUpdateSingleLyric(
+    lyricId: number,
+    songId: number,
+    textContent: string,
+  ) {
+    // Verificar que la letra existe y pertenece a la canción
+    const existingLyric = await this.prisma.songs_lyrics.findUnique({
+      where: { id: lyricId, songId },
+      include: { chords: true },
+    });
+
+    if (!existingLyric) {
+      throw new HttpException(
+        `Lyric ${lyricId} not found for song ${songId}`,
+        HttpStatus.NOT_FOUND,
+      );
+    }
+
+    // Parsear contenido del texto
+    const { cleanedLines: lines, lineMapping: lineToOriginalMap } =
+      this.lyricsParser.parseFileContent(textContent);
+
+    // Validar que no haya más de 5 acordes
+    const validation = this.lyricsParser.validateMaxChordsPerLine(lines);
+    if (!validation.valid) {
+      throw new HttpException(
+        `Validation failed:\n${validation.errors.join('\n')}`,
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    // Filtrar líneas vacías y de estructura
+    const validLines = lines.filter((line) => {
+      const structureId = this.lyricsParser.detectStructure(line);
+      return structureId === null && line.trim().length > 0;
+    });
+
+    if (validLines.length === 0) {
+      throw new Error('No valid lyrics found in the text content');
+    }
+
+    // Procesar las líneas para encontrar acordes y letra
+    let chordsLine: string | null = null;
+    let lyricsLine: string | null = null;
+    let originalChordsLine: string | null = null;
+    let originalLyricsLine: string | null = null;
+
+    for (let i = 0; i < validLines.length; i++) {
+      const line = validLines[i];
+      const hasChords = this.lyricsParser.hasChords(line);
+
+      if (hasChords && !chordsLine) {
+        chordsLine = line;
+        originalChordsLine = lineToOriginalMap.get(lines.indexOf(line)) || line;
+
+        // Verificar si hay una siguiente línea que sea letra
+        const nextLine = validLines[i + 1];
+        if (nextLine && !this.lyricsParser.hasChords(nextLine)) {
+          lyricsLine = nextLine;
+          originalLyricsLine =
+            lineToOriginalMap.get(lines.indexOf(nextLine)) || nextLine;
+          break;
+        }
+      } else if (!hasChords && !lyricsLine) {
+        // Primera línea sin acordes es la letra
+        lyricsLine = line;
+        originalLyricsLine = lineToOriginalMap.get(lines.indexOf(line)) || line;
+        break;
+      }
+    }
+
+    // Si no encontramos letra, usar la primera línea válida
+    if (!lyricsLine && validLines.length > 0) {
+      const firstValidLine = validLines[0];
+      lyricsLine = firstValidLine;
+      originalLyricsLine =
+        lineToOriginalMap.get(lines.indexOf(firstValidLine)) || firstValidLine;
+    }
+
+    if (!lyricsLine) {
+      throw new Error('No lyrics text found');
+    }
+
+    // Normalizar la letra
+    const normalizedLyrics = this.lyricsNormalizer.normalize(lyricsLine);
+
+    // Eliminar todos los acordes existentes de esta letra
+    await this.prisma.songs_Chords.deleteMany({
+      where: { lyricId },
+    });
+
+    // Actualizar el texto de la letra
+    const updatedLyric = await this.prisma.songs_lyrics.update({
+      where: { id: lyricId, songId },
+      data: { lyrics: normalizedLyrics },
+    });
+
+    // Si hay acordes, procesarlos y crear nuevos
+    if (chordsLine && originalChordsLine) {
+      const chordsWithPosition =
+        this.chordProcessor.extractChordsWithPosition(originalChordsLine);
+
+      if (chordsWithPosition.length > 0) {
+        const referenceLength = Math.max(
+          originalChordsLine.length,
+          originalLyricsLine?.length || 0,
+        );
+
+        // Calcular posiciones
+        const chordsWithCalculatedPositions = chordsWithPosition.map(
+          ({ chord, charPosition }) => ({
+            chord,
+            charPosition,
+            calculatedPosition: this.chordProcessor.calculateChordPosition(
+              charPosition,
+              referenceLength,
+            ),
+          }),
+        );
+
+        // Redistribuir posiciones
+        const chordsWithFinalPositions =
+          this.chordProcessor.redistributePositions(
+            chordsWithCalculatedPositions,
+          );
+
+        // Crear los nuevos acordes
+        for (const { chord, finalPosition } of chordsWithFinalPositions) {
+          const parsedChord = this.chordProcessor.parseChord(chord);
+
+          if (parsedChord) {
+            await this.prisma.songs_Chords.create({
+              data: {
+                lyricId: updatedLyric.id,
+                rootNote: parsedChord.rootNote,
+                chordQuality: parsedChord.chordQuality,
+                slashChord: parsedChord.slashChord,
+                position: finalPosition,
+              },
+            });
+          }
+        }
+      }
+    }
+
+    // Notificar a todos los eventos que contienen esta canción
+    await this.notifySongUpdate(songId, 'lyrics');
+
+    // Retornar la letra actualizada con sus acordes
+    return await this.prisma.songs_lyrics.findUnique({
+      where: { id: lyricId },
+      include: {
+        chords: true,
+        structure: true,
+      },
+    });
   }
 }

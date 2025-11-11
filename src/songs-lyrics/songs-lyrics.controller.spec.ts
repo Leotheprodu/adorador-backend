@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { HttpException, HttpStatus } from '@nestjs/common';
 import { SongsLyricsController } from './songs-lyrics.controller';
 import { SongsLyricsService } from './songs-lyrics.service';
 import { SongsService } from '../songs/songs.service';
@@ -19,6 +20,7 @@ describe('SongsLyricsController', () => {
     parseAndSaveLyricsWithChords: jest.fn(),
     parseAndSaveLyricsFromText: jest.fn(),
     normalizeLyrics: jest.fn(),
+    parseAndUpdateSingleLyric: jest.fn(),
   };
 
   const mockSongsService = {
@@ -425,6 +427,169 @@ I once was lost`,
       );
       expect(mockResponse.status).toHaveBeenCalledWith(200);
       expect(mockResponse.send).toHaveBeenCalledWith(mockResult);
+    });
+  });
+
+  describe('parseAndUpdateSingleLyric', () => {
+    it('should parse and update a single lyric with chords', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const lyricId = 1;
+      const parseSingleLyricDto = {
+        textContent: '    C       Am\nGloria a Dios',
+      };
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      const mockUpdatedLyric = {
+        id: lyricId,
+        position: 1,
+        lyrics: 'Gloria a Dios',
+        structure: { id: 1, title: 'verso' },
+        chords: [
+          {
+            id: 1,
+            rootNote: 'C',
+            chordQuality: '',
+            slashChord: '',
+            position: 1,
+          },
+          {
+            id: 2,
+            rootNote: 'Am',
+            chordQuality: '',
+            slashChord: '',
+            position: 3,
+          },
+        ],
+      };
+
+      mockSongsLyricsService.parseAndUpdateSingleLyric.mockResolvedValue(
+        mockUpdatedLyric,
+      );
+
+      await controller.parseAndUpdateSingleLyric(
+        bandId,
+        songId,
+        lyricId,
+        parseSingleLyricDto,
+        mockResponse,
+      );
+
+      expect(
+        mockSongsLyricsService.parseAndUpdateSingleLyric,
+      ).toHaveBeenCalledWith(lyricId, songId, parseSingleLyricDto.textContent);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.send).toHaveBeenCalledWith(mockUpdatedLyric);
+    });
+
+    it('should handle lyric not found error', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const lyricId = 999; // Non-existent lyric
+      const parseSingleLyricDto = {
+        textContent: '    C       Am\nGloria a Dios',
+      };
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      mockSongsLyricsService.parseAndUpdateSingleLyric.mockRejectedValue(
+        new HttpException(
+          `Lyric ${lyricId} not found for song ${songId}`,
+          HttpStatus.NOT_FOUND,
+        ),
+      );
+
+      await expect(
+        controller.parseAndUpdateSingleLyric(
+          bandId,
+          songId,
+          lyricId,
+          parseSingleLyricDto,
+          mockResponse,
+        ),
+      ).rejects.toThrow(`Lyric ${lyricId} not found for song ${songId}`);
+
+      expect(
+        mockSongsLyricsService.parseAndUpdateSingleLyric,
+      ).toHaveBeenCalledWith(lyricId, songId, parseSingleLyricDto.textContent);
+    });
+
+    it('should parse lyric with only text (no chords)', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const lyricId = 1;
+      const parseSingleLyricDto = {
+        textContent: 'Gloria a Dios sin acordes',
+      };
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      const mockUpdatedLyric = {
+        id: lyricId,
+        position: 1,
+        lyrics: 'Gloria a Dios sin acordes',
+        structure: { id: 1, title: 'verso' },
+        chords: [],
+      };
+
+      mockSongsLyricsService.parseAndUpdateSingleLyric.mockResolvedValue(
+        mockUpdatedLyric,
+      );
+
+      await controller.parseAndUpdateSingleLyric(
+        bandId,
+        songId,
+        lyricId,
+        parseSingleLyricDto,
+        mockResponse,
+      );
+
+      expect(
+        mockSongsLyricsService.parseAndUpdateSingleLyric,
+      ).toHaveBeenCalledWith(lyricId, songId, parseSingleLyricDto.textContent);
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.send).toHaveBeenCalledWith(mockUpdatedLyric);
+    });
+
+    it('should handle max chords validation error', async () => {
+      const bandId = 1;
+      const songId = 1;
+      const lyricId = 1;
+      const parseSingleLyricDto = {
+        textContent: 'C  D  E  F  G  A  B\nDemasiados acordes',
+      };
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        send: jest.fn(),
+      } as any;
+
+      mockSongsLyricsService.parseAndUpdateSingleLyric.mockRejectedValue(
+        new HttpException(
+          'Line 1 has 7 chords (max 5): "C  D  E  F  G  A  B"',
+          HttpStatus.BAD_REQUEST,
+        ),
+      );
+
+      await expect(
+        controller.parseAndUpdateSingleLyric(
+          bandId,
+          songId,
+          lyricId,
+          parseSingleLyricDto,
+          mockResponse,
+        ),
+      ).rejects.toThrow('Line 1 has 7 chords (max 5)');
     });
   });
 });

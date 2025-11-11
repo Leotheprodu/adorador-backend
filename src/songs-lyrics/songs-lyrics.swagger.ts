@@ -440,3 +440,87 @@ export function ApiDeleteLyric() {
     }),
   );
 }
+
+export function ApiParseAndUpdateSingleLyric() {
+  return applyDecorators(
+    ApiOperation({
+      summary: 'Parse and update a single lyric line with chords',
+      description:
+        'Updates a single lyric line by parsing text content with chords. Maintains the lyric ID and position but replaces the text and all chords. User must be a member of the band.',
+    }),
+    ApiBearerAuth(),
+    ApiParam({
+      name: 'bandId',
+      description: 'Band ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiParam({
+      name: 'songId',
+      description: 'Song ID',
+      type: 'number',
+      example: 1,
+    }),
+    ApiParam({
+      name: 'id',
+      description: 'Lyric ID to update',
+      type: 'number',
+      example: 1,
+    }),
+    ApiBody({
+      schema: {
+        type: 'object',
+        properties: {
+          textContent: {
+            type: 'string',
+            description: 'Text content with optional chords on the line above',
+            example: `       Em      D
+Mi Dios eres mi fortaleza`,
+          },
+        },
+        required: ['textContent'],
+      },
+    }),
+    ApiOkResponse({
+      description: 'Lyric updated successfully with parsed chords',
+      schema: {
+        example: {
+          id: 1,
+          songId: 1,
+          structureId: 2,
+          lyrics: 'Mi Dios eres mi fortaleza',
+          position: 1,
+          structure: {
+            id: 2,
+            title: 'verse',
+          },
+          chords: [
+            {
+              id: 1,
+              rootNote: 'E',
+              chordQuality: 'm',
+              slashChord: '',
+              position: 2,
+            },
+            {
+              id: 2,
+              rootNote: 'D',
+              chordQuality: '',
+              slashChord: '',
+              position: 3,
+            },
+          ],
+        },
+      },
+    }),
+    ApiBadRequestResponse({
+      description: 'Validation failed or invalid text content',
+    }),
+    ApiNotFoundResponse({
+      description: 'Lyric not found for the specified song',
+    }),
+    ApiUnauthorizedResponse({
+      description: 'User is not authenticated or not a member of the band',
+    }),
+  );
+}
