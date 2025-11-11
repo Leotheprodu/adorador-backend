@@ -3,15 +3,22 @@ import {
   BadRequestException,
   NotFoundException,
   ForbiddenException,
+  Inject,
+  forwardRef,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateBandDto } from './dto/create-band.dto';
 import { passwordCompare } from '../users/utils/handlePassword';
 import { UpdateMemberDto } from './dto/update-member.dto';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class BandsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => EventsGateway))
+    private readonly eventsGateway: EventsGateway,
+  ) {}
 
   async getBands() {
     const currentDate = new Date();
@@ -509,6 +516,13 @@ export class BandsService {
         bandId,
         userId,
       },
+      include: {
+        user: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     if (!member) {
@@ -528,7 +542,7 @@ export class BandsService {
 
       // Si existe otro eventManager, desactivarlo en una transacción
       if (currentEventManager) {
-        return await this.prisma.$transaction(async (prisma) => {
+        const result = await this.prisma.$transaction(async (prisma) => {
           // Desactivar el eventManager actual
           await prisma.membersofBands.update({
             where: { id: currentEventManager.id },
@@ -541,13 +555,59 @@ export class BandsService {
             data,
           });
         });
+
+        // Emitir evento WebSocket para todos los eventos de esta banda
+        await this.notifyEventManagerChange(bandId, userId, member.user.name);
+
+        return result;
       }
+    }
+
+    // Si se está desactivando isEventManager
+    if (data.isEventManager === false && member.isEventManager) {
+      const result = await this.prisma.membersofBands.update({
+        where: { id: member.id },
+        data,
+      });
+
+      // Emitir evento WebSocket indicando que ya no hay event manager
+      await this.notifyEventManagerChange(bandId, null, null);
+
+      return result;
     }
 
     // Si no hay cambio de eventManager, actualizar normalmente
     return await this.prisma.membersofBands.update({
       where: { id: member.id },
       data,
+    });
+  }
+
+  private async notifyEventManagerChange(
+    bandId: number,
+    newEventManagerId: number | null,
+    newEventManagerName: string | null,
+  ) {
+    // Obtener todos los eventos activos de esta banda
+    const events = await this.prisma.events.findMany({
+      where: { bandId },
+      select: { id: true },
+    });
+
+    // Emitir evento para cada evento de la banda
+    events.forEach((event) => {
+      const eventManagerChangeEvent = `eventManagerChanged-${event.id}`;
+      this.eventsGateway.server.emit(eventManagerChangeEvent, {
+        newEventManagerId: newEventManagerId,
+        newEventManagerName: newEventManagerName,
+        eventId: event.id,
+        bandId: bandId,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(
+        `[BandsService] Emitido ${eventManagerChangeEvent} - Nuevo manager: ${newEventManagerName || 'ninguno'}`,
+      );
     });
   }
 

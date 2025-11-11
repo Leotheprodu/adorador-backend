@@ -4,6 +4,7 @@ import { CreateBandDto } from './dto/create-band.dto';
 describe('BandsService - New Functionality', () => {
   let service: BandsService;
   let mockPrisma: any;
+  let mockEventsGateway: any;
 
   beforeEach(() => {
     mockPrisma = {
@@ -12,7 +13,13 @@ describe('BandsService - New Functionality', () => {
       },
     };
 
-    service = new BandsService(mockPrisma);
+    mockEventsGateway = {
+      server: {
+        emit: jest.fn(),
+      },
+    };
+
+    service = new BandsService(mockPrisma, mockEventsGateway);
   });
 
   describe('createBand with automatic membership', () => {

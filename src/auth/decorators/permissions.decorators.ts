@@ -56,3 +56,14 @@ export const CheckUserMemberOfBand = ({
     key,
     isAdmin,
   });
+
+export const CHECK_BAND_ADMIN = 'checkBandAdmin';
+export type CheckBandAdminType = {
+  checkBy: 'paramBandId';
+  key: string;
+};
+export const CheckBandAdmin = ({ checkBy, key }: CheckBandAdminType) =>
+  SetMetadata(CHECK_BAND_ADMIN, {
+    checkBy,
+    key,
+  });
