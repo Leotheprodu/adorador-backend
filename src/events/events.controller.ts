@@ -34,6 +34,7 @@ import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   CheckChurch,
   CheckLoginStatus,
+  CheckBandAdmin,
 } from '../auth/decorators/permissions.decorators';
 import { churchRoles } from '../../config/constants';
 import { catchHandle } from '../chore/utils/catchHandle';
@@ -130,6 +131,10 @@ export class EventsController {
   }
   @ApiUpdateEvent()
   @CheckLoginStatus('loggedIn')
+  @CheckBandAdmin({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
   /* @CheckChurch({
     checkBy: 'paramBandId',
     key: 'bandId',
@@ -173,6 +178,10 @@ export class EventsController {
   }
   @ApiDeleteEvent()
   @CheckLoginStatus('loggedIn')
+  @CheckBandAdmin({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
   /* @CheckChurch({
     checkBy: 'paramBandId',
     key: 'bandId',
@@ -198,6 +207,10 @@ export class EventsController {
   @ApiAddSongsToEvent()
   @Post(':id/songs')
   @CheckLoginStatus('loggedIn')
+  @CheckBandAdmin({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
   /* @CheckChurch({
     checkBy: 'paramBandId',
     key: 'bandId',
@@ -241,6 +254,10 @@ export class EventsController {
   }
   @Delete(':id/songs')
   @CheckLoginStatus('loggedIn')
+  @CheckBandAdmin({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
   /* @CheckChurch({
     checkBy: 'paramBandId',
     key: 'bandId',
@@ -275,6 +292,10 @@ export class EventsController {
 
   @Patch(':id/songs')
   @CheckLoginStatus('loggedIn')
+  @CheckBandAdmin({
+    checkBy: 'paramBandId',
+    key: 'bandId',
+  })
   /* @CheckChurch({
     checkBy: 'paramBandId',
     key: 'bandId',
@@ -369,15 +390,35 @@ export class EventsController {
 
         const lastMessage = this.eventsGateway.getLastMessage(eventName);
 
-        // Notificar cambio de event manager a todos los usuarios conectados
-        const eventManagerChangeEvent = `eventManagerChanged-${id}`;
-        this.eventsGateway.server.emit(eventManagerChangeEvent, {
-          newEventManagerId: user.sub,
-          newEventManagerName: userName,
-          eventId: id,
+        // Obtener todos los eventos de la banda para emitir WebSocket a cada uno
+        const bandEvents = await this.eventsService.findAll(bandId);
+
+        // Notificar cambio de event manager a TODOS los eventos de la banda
+        for (const event of bandEvents) {
+          const eventManagerChangeEvent = `eventManagerChanged-${event.id}`;
+          this.eventsGateway.server.emit(eventManagerChangeEvent, {
+            newEventManagerId: user.sub,
+            newEventManagerName: userName,
+            eventId: event.id,
+            bandId: bandId,
+            timestamp: new Date().toISOString(),
+          });
+          console.log(
+            `[EventsController] Emitido eventManagerChanged-${event.id} para nuevo event manager: ${userName}`,
+          );
+        }
+
+        // CRITICAL: Emitir evento global para actualizar la tabla de miembros
+        this.eventsGateway.server.emit('BAND_MEMBER_UPDATED', {
           bandId: bandId,
-          timestamp: new Date().toISOString(),
+          userId: user.sub,
+          changes: {
+            isEventManager: true,
+          },
         });
+        console.log(
+          `[EventsController] Emitido BAND_MEMBER_UPDATED para bandId: ${bandId}, userId: ${user.sub}`,
+        );
 
         // También mantener la notificación original por compatibilidad
         this.eventsGateway.server.emit(eventName, {

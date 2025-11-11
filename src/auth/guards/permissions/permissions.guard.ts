@@ -14,10 +14,12 @@ import {
   CHECK_LOGIN_STATUS,
   CHECK_USER_ID_KEY,
   CHECK_USER_MEMBER_OF_BAND,
+  CHECK_BAND_ADMIN,
   CheckChurchType,
   CheckLoginStatusType,
   CheckUserIdType,
   CheckUserMemberOfBandType,
+  CheckBandAdminType,
 } from '../../decorators/permissions.decorators';
 import { checkAdminHandle } from '../../utils/checkAdminHandle';
 import { checkAppRolesHandle } from '../../utils/checkAppRolesHandle';
@@ -25,6 +27,7 @@ import { checkChurchHandle } from '../../utils/checkChurchHandle';
 import { checkLoginStatusHandle } from '../../utils/checkLoginStatusHandle';
 import { checkUserIdParamHandle } from '../../utils/checkUserIdParamHandle';
 import { isMemberOfBand } from '../../utils/checkUserIsMemberOfBand';
+import { isBandAdmin } from '../../utils/checkUserIsBandAdmin';
 import { MembershipsService } from '../../../memberships/memberships.service';
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -77,6 +80,10 @@ export class PermissionsGuard implements CanActivate {
         CHECK_USER_MEMBER_OF_BAND,
         context.getHandler(),
       );
+    const checkBandAdminParam = this.reflector.get<CheckBandAdminType>(
+      CHECK_BAND_ADMIN,
+      context.getHandler(),
+    );
 
     try {
       checkLoginStatusHandle(checkLoginStatus, userPayload);
@@ -131,6 +138,14 @@ export class PermissionsGuard implements CanActivate {
       isMemberOfBand(checkUserIsMemberOfBand, userPayload, request);
     } catch (error) {
       console.log('User is not a member of the band or not admin.');
+      throw new ForbiddenException(error.message);
+    }
+
+    // Revisar si el usuario es administrador de la banda
+    try {
+      isBandAdmin(checkBandAdminParam, userPayload, request);
+    } catch (error) {
+      console.log('User is not an admin of this band.');
       throw new ForbiddenException(error.message);
     }
 

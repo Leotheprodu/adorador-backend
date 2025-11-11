@@ -1,10 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { BandsService } from './bands.service';
 import { PrismaService } from '../prisma.service';
+import { EventsGateway } from '../events/events.gateway';
 
 describe('BandsService', () => {
   let service: BandsService;
   let prismaService: any;
+  let eventsGateway: any;
 
   beforeEach(async () => {
     const mockPrismaService = {
@@ -28,14 +30,23 @@ describe('BandsService', () => {
       },
       events: {
         deleteMany: jest.fn(),
+        findMany: jest.fn(),
       },
       membersofBands: {
         deleteMany: jest.fn(),
+        findFirst: jest.fn(),
+        update: jest.fn(),
       },
       users: {
         findUnique: jest.fn(),
       },
       $transaction: jest.fn(),
+    };
+
+    const mockEventsGateway = {
+      server: {
+        emit: jest.fn(),
+      },
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -45,11 +56,16 @@ describe('BandsService', () => {
           provide: PrismaService,
           useValue: mockPrismaService,
         },
+        {
+          provide: EventsGateway,
+          useValue: mockEventsGateway,
+        },
       ],
     }).compile();
 
     service = module.get<BandsService>(BandsService);
     prismaService = module.get(PrismaService);
+    eventsGateway = module.get(EventsGateway);
   });
 
   it('should be defined', () => {
