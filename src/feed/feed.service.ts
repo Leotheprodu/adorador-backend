@@ -22,6 +22,7 @@ import {
 } from './interfaces/feed.interface';
 import { Prisma, PostType, PostStatus } from '@prisma/client';
 import { FeedGateway } from './feed.gateway';
+import { EventsGateway } from '../events/events.gateway';
 
 @Injectable()
 export class FeedService {
@@ -31,6 +32,7 @@ export class FeedService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => FeedGateway))
     private feedGateway: FeedGateway,
+    private eventsGateway: EventsGateway,
   ) {}
 
   /**
@@ -400,6 +402,7 @@ export class FeedService {
         _count: {
           select: {
             blessings: true,
+            songCopies: true,
           },
         },
         blessings: userId
@@ -429,6 +432,7 @@ export class FeedService {
             _count: {
               select: {
                 blessings: true,
+                songCopies: true,
               },
             },
             blessings: userId
@@ -818,7 +822,7 @@ export class FeedService {
       where: { postId },
     });
 
-    // Emitir evento de canción copiada
+    // Emitir evento de canción copiada (para el feed)
     this.feedGateway.emitSongCopied({
       postId,
       userId,
@@ -826,6 +830,24 @@ export class FeedService {
       targetBandName: targetBand?.name || 'Banda',
       count: copiesCount,
     });
+
+    // Emitir evento de nueva canción creada en la banda (para administración)
+    try {
+      this.eventsGateway.server.emit(`bandSongCreated-${targetBandId}`, {
+        songId: result.id,
+        bandId: targetBandId,
+        title: result.title,
+        artist: result.artist,
+      });
+
+      this.logger.log(
+        `✅ Emitido bandSongCreated-${targetBandId} para canción copiada ${result.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Error emitiendo WebSocket para canción copiada ${result.id}: ${error.message}`,
+      );
+    }
 
     return {
       success: true,
@@ -845,7 +867,7 @@ export class FeedService {
     copySongDto: CopySongDto,
     userId: number,
   ): Promise<CopySongResponse> {
-    const { targetBandId, newKey, newTempo } = copySongDto;
+    const { targetBandId, newKey, newTempo, commentId } = copySongDto;
 
     // Verificar que la canción existe y obtener todos sus datos
     const originalSong = await this.prisma.songs.findUnique({
@@ -929,12 +951,75 @@ export class FeedService {
         }
       }
 
+      // 3. Registrar la copia en SongCopies
+      await tx.songCopies.create({
+        data: {
+          commentId: commentId || null,
+          originalSongId: originalSong.id,
+          copiedSongId: copiedSong.id,
+          userId,
+          targetBandId,
+        },
+      });
+
       return copiedSong;
     });
 
     this.logger.log(
       `Usuario ${userId} copió canción ${originalSong.id} a banda ${targetBandId} (nueva canción: ${result.id})`,
     );
+
+    // Obtener información del usuario y banda para el evento
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+
+    const targetBand = await this.prisma.bands.findUnique({
+      where: { id: targetBandId },
+      select: { name: true },
+    });
+
+    // Si hay commentId, incrementar el contador de ese comentario específico
+    if (commentId) {
+      const copiesCount = await this.prisma.songCopies.count({
+        where: { commentId },
+      });
+
+      // Obtener el postId del comentario
+      const comment = await this.prisma.comments.findUnique({
+        where: { id: commentId },
+        select: { postId: true },
+      });
+
+      // Emitir evento de canción copiada desde comentario (para el feed)
+      this.feedGateway.emitSongCopiedFromComment({
+        commentId,
+        postId: comment?.postId,
+        userId,
+        userName: user?.name || 'Usuario',
+        targetBandName: targetBand?.name || 'Banda',
+        count: copiesCount,
+      });
+    }
+
+    // Emitir evento de nueva canción creada en la banda (para administración)
+    try {
+      this.eventsGateway.server.emit(`bandSongCreated-${targetBandId}`, {
+        songId: result.id,
+        bandId: targetBandId,
+        title: result.title,
+        artist: result.artist,
+      });
+
+      this.logger.log(
+        `✅ Emitido bandSongCreated-${targetBandId} para canción copiada desde comentario ${result.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Error emitiendo WebSocket para canción copiada desde comentario ${result.id}: ${error.message}`,
+      );
+    }
 
     return {
       success: true,

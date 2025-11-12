@@ -4,8 +4,10 @@ import { FeedController } from './feed.controller';
 import { FeedGateway } from './feed.gateway';
 import { PrismaService } from '../prisma.service';
 import { MembershipsService } from '../memberships/memberships.service';
+import { EventsModule } from '../events/events.module';
 
 @Module({
+  imports: [EventsModule],
   controllers: [FeedController],
   providers: [FeedService, FeedGateway, PrismaService, MembershipsService],
   exports: [FeedService],
