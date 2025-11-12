@@ -183,7 +183,7 @@ model Events {
 
 model Songs {
   id          Int            @id @default(autoincrement())
-  title       String         @unique
+  title       String
   artist      String?
   bandId      Int
   band        Bands          @relation(fields: [bandId], references: [id])
@@ -201,6 +201,7 @@ model Songs {
   originalCopies SongCopies[] @relation("OriginalSongCopies")
   copiedFrom     SongCopies?  @relation("CopiedSong")
 
+  @@unique([title, bandId], name: "unique_song_per_band")
   @@map("Songs")
 }
 
@@ -297,6 +298,7 @@ model Posts {
   // Metadata para requests
   requestedSongTitle String? @db.VarChar(200) // Si está pidiendo
   requestedArtist    String? @db.VarChar(150)
+  requestedYoutubeUrl String? @db.VarChar(300) // URL de YouTube para solicitudes
 
   // Engagement
   blessings  Blessings[]

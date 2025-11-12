@@ -50,6 +50,10 @@ export class UsersService {
           where: { active: true },
           select: {
             id: true,
+            role: true,
+            isAdmin: true,
+            isEventManager: true,
+            active: true,
             band: {
               select: {
                 id: true,
@@ -125,6 +129,10 @@ export class UsersService {
           where: { active: true },
           select: {
             id: true,
+            role: true,
+            isAdmin: true,
+            isEventManager: true,
+            active: true,
             band: {
               select: {
                 id: true,
