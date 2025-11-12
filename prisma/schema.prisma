@@ -5,7 +5,7 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["omitApi"]
 }
 
@@ -14,28 +14,32 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 model Users {
-  id        Int          @id @default(autoincrement())
-  name      String
-  email     String?      
-  phone     String       @unique // Ahora es requerido y único para autenticación
-  password  String
-  refreshToken String?   @db.Text
-  birthdate DateTime?
-  status    String       @default("inactive")
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
-  tokens    Temporal_token_pool[]
-  memberships Memberships[]
-  roles     Roles[]
-  membersofBands MembersofBands[]
-  receivedInvitations BandInvitations[] @relation("InvitedUser")
-  sentInvitations     BandInvitations[] @relation("Inviter")
+  id                  Int                   @id @default(autoincrement())
+  name                String
+  email               String?
+  phone               String                @unique // Ahora es requerido y único para autenticación
+  password            String
+  refreshToken        String?               @db.Text
+  birthdate           DateTime?
+  status              String                @default("inactive")
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+  tokens              Temporal_token_pool[]
+  memberships         Memberships[]
+  roles               Roles[]
+  membersofBands      MembersofBands[]
+  receivedInvitations BandInvitations[]     @relation("InvitedUser")
+  sentInvitations     BandInvitations[]     @relation("Inviter")
+
+  // Feed Social relations
+  posts      Posts[]      @relation("PostAuthor")
+  comments   Comments[]   @relation("CommentAuthor")
+  blessings  Blessings[]  @relation("UserBlessings")
+  songCopies SongCopies[] @relation("UserSongCopies")
 
   @@map("Users")
 }
-
 
 model Roles {
   id        Int      @id @default(autoincrement())
@@ -47,59 +51,60 @@ model Roles {
   @@map("Roles")
 }
 
-
 model Temporal_token_pool {
-  id             Int      @id @default(autoincrement())
-  token          String   @unique
-  userPhone      String   // Cambio de userEmail a userPhone
-  user           Users    @relation(fields: [userPhone], references: [phone])
-  type           String
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  token     String   @unique
+  userPhone String // Cambio de userEmail a userPhone
+  user      Users    @relation(fields: [userPhone], references: [phone])
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("Temporal_token_pool")
 }
 
-
-
 model Churches {
-  id        Int          @id @default(autoincrement())
-  name      String       @unique
-  country   String
-  address   String
-  aniversary DateTime?
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  id          Int           @id @default(autoincrement())
+  name        String        @unique
+  country     String
+  address     String
+  aniversary  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   memberships Memberships[]
 
   @@map("Churches")
 }
 
 model Bands {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
-  events  Events[]
-  songs     Songs[]
-  members   MembersofBands[]
+  id          Int               @id @default(autoincrement())
+  name        String            @unique
+  events      Events[]
+  songs       Songs[]
+  members     MembersofBands[]
   invitations BandInvitations[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Feed Social relations
+  posts         Posts[]      @relation("PostBand")
+  receivedSongs SongCopies[] @relation("BandReceivedSongs")
 
   @@map("Bands")
 }
 
 model MembersofBands {
-  id        Int      @id @default(autoincrement())
-  user      Users    @relation(fields: [userId], references: [id])
-  userId    Int
-  band      Bands    @relation(fields: [bandId], references: [id])
-  bandId    Int
-  role      String   // Rol del miembro en la banda (ej. vocalista, guitarrista, etc.)
-  active    Boolean  @default(true) // Controla si el miembro está activo en la banda
-  isAdmin   Boolean  @default(false) // Controla si el miembro es administrador de la banda
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isEventManager Boolean @default(false) // Controla si el miembro es el encargado de eventos de la banda
+  id             Int      @id @default(autoincrement())
+  user           Users    @relation(fields: [userId], references: [id])
+  userId         Int
+  band           Bands    @relation(fields: [bandId], references: [id])
+  bandId         Int
+  role           String // Rol del miembro en la banda (ej. vocalista, guitarrista, etc.)
+  active         Boolean  @default(true) // Controla si el miembro está activo en la banda
+  isAdmin        Boolean  @default(false) // Controla si el miembro es administrador de la banda
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  isEventManager Boolean  @default(false) // Controla si el miembro es el encargado de eventos de la banda
 
   @@map("MembersofBands")
 }
@@ -112,11 +117,11 @@ model BandInvitations {
   status        String   @default("pending") // pending, accepted, rejected, expired
   createdAt     DateTime @default(now())
   expiresAt     DateTime
-  
-  band          Bands    @relation(fields: [bandId], references: [id], onDelete: Cascade)
-  invitedUser   Users    @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
-  inviter       Users    @relation("Inviter", fields: [invitedBy], references: [id], onDelete: Cascade)
-  
+
+  band        Bands @relation(fields: [bandId], references: [id], onDelete: Cascade)
+  invitedUser Users @relation("InvitedUser", fields: [invitedUserId], references: [id], onDelete: Cascade)
+  inviter     Users @relation("Inviter", fields: [invitedBy], references: [id], onDelete: Cascade)
+
   @@index([invitedUserId, status])
   @@index([bandId])
   @@index([bandId, invitedUserId, status])
@@ -124,121 +129,259 @@ model BandInvitations {
 }
 
 model Memberships {
-  id        Int        @id @default(autoincrement())
-  user      Users      @relation(fields: [userId], references: [id])
-  userId    Int
-  church    Churches   @relation(fields: [churchId], references: [id])
-  churchId  Int
-  active    Boolean    @default(false) // Controla si el usuario es aceptado como miembro
-  memberSince DateTime  @default(now())
-  roles     ChurchMemberRoles[] // Relación con los roles dentro de la iglesia
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  @@unique([userId, churchId]) // Asegura que un usuario solo puede tener una membresía por iglesia
+  id          Int                 @id @default(autoincrement())
+  user        Users               @relation(fields: [userId], references: [id])
+  userId      Int
+  church      Churches            @relation(fields: [churchId], references: [id])
+  churchId    Int
+  active      Boolean             @default(false) // Controla si el usuario es aceptado como miembro
+  memberSince DateTime            @default(now())
+  roles       ChurchMemberRoles[] // Relación con los roles dentro de la iglesia
+  createdAt   DateTime            @default(now())
+  updatedAt   DateTime            @updatedAt
 
+  @@unique([userId, churchId]) // Asegura que un usuario solo puede tener una membresía por iglesia
   @@map("Memberships")
 }
 
 model ChurchMemberRoles {
-  id          Int          @id @default(autoincrement())
-  membership  Memberships   @relation(fields: [membershipId], references: [id])
+  id           Int         @id @default(autoincrement())
+  membership   Memberships @relation(fields: [membershipId], references: [id])
   membershipId Int
-  role        ChurchRoles         @relation(fields: [roleId], references: [id])  // Relación con la tabla de roles de las iglesias
-  roleId      Int
-  startDate   DateTime     @default(now())
-  endDate     DateTime?
-  active      Boolean      @default(true) // Controla si el rol está activo o no
+  role         ChurchRoles @relation(fields: [roleId], references: [id]) // Relación con la tabla de roles de las iglesias
+  roleId       Int
+  startDate    DateTime    @default(now())
+  endDate      DateTime?
+  active       Boolean     @default(true) // Controla si el rol está activo o no
 
   @@index([membershipId])
   @@index([roleId])
   @@map("ChurchMemberRoles")
 }
+
 model ChurchRoles {
-  id          Int          @id @default(autoincrement())
-  name        String       @unique // Nombre del rol (pastor, líder de alabanza, etc.)
-  description String?      // Descripción del rol si es necesario
+  id          Int                 @id @default(autoincrement())
+  name        String              @unique // Nombre del rol (pastor, líder de alabanza, etc.)
+  description String? // Descripción del rol si es necesario
   churchRoles ChurchMemberRoles[]
 
   @@map("ChurchRoles")
 }
+
 model Events {
-  id        Int      @id @default(autoincrement())
+  id        Int           @id @default(autoincrement())
   title     String
   date      DateTime
-  bandId  Int
-  band    Bands @relation(fields: [bandId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  bandId    Int
+  band      Bands         @relation(fields: [bandId], references: [id])
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
   songs     SongsEvents[]
 
   @@map("Events")
 }
 
 model Songs {
-  id        Int      @id @default(autoincrement())
-  title     String   @unique
-  artist    String?
-  bandId  Int
-  band    Bands @relation(fields: [bandId], references: [id])
-  songType      String  @default("worship")
+  id          Int            @id @default(autoincrement())
+  title       String         @unique
+  artist      String?
+  bandId      Int
+  band        Bands          @relation(fields: [bandId], references: [id])
+  songType    String         @default("worship")
   youtubeLink String?
-  key       String?
-  tempo     Int?
-  lyrics    Songs_lyrics[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  events  SongsEvents[]
+  key         String?
+  tempo       Int?
+  lyrics      Songs_lyrics[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+  events      SongsEvents[]
+
+  // Feed Social relations
+  sharedInPosts  Posts[]      @relation("SharedSong")
+  originalCopies SongCopies[] @relation("OriginalSongCopies")
+  copiedFrom     SongCopies?  @relation("CopiedSong")
 
   @@map("Songs")
 }
-model SongsEvents {
-  eventId Int
-  songId    Int
-  event   Events @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  song      Songs    @relation(fields: [songId], references: [id], onDelete: Cascade)
-  transpose Int      @default(0)
-  order     Int      @default(0)
 
+model SongsEvents {
+  eventId   Int
+  songId    Int
+  event     Events @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  song      Songs  @relation(fields: [songId], references: [id], onDelete: Cascade)
+  transpose Int    @default(0)
+  order     Int    @default(0)
 
   @@id([eventId, songId])
   @@map("SongsEvents")
 }
 
 model Songs_Structures {
-  id        Int      @id @default(autoincrement())
-  title     String   @unique
+  id        Int            @id @default(autoincrement())
+  title     String         @unique
   lyrics    Songs_lyrics[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 
   @@map("Songs_Structures")
 }
 
 model Songs_lyrics {
-  id        Int      @id @default(autoincrement())
-  songId    Int                                       
-  song      Songs @relation(fields: [songId], references: [id])
+  id          Int              @id @default(autoincrement())
+  songId      Int
+  song        Songs            @relation(fields: [songId], references: [id])
   structureId Int
-  structure Songs_Structures @relation(fields: [structureId], references: [id])
-  lyrics    String
-  chords    Songs_Chords[]
-  position  Int     @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  structure   Songs_Structures @relation(fields: [structureId], references: [id])
+  lyrics      String
+  chords      Songs_Chords[]
+  position    Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@map("Songs_lyrics")
 }
 
 model Songs_Chords {
-  id        Int      @id @default(autoincrement())
-  lyricId   Int
-  lyric     Songs_lyrics @relation(fields: [lyricId], references: [id])
-  rootNote      String
-  chordQuality String? @default("")
-  slashChord String? @default("")
-  position  Int     @default(0)
+  id           Int          @id @default(autoincrement())
+  lyricId      Int
+  lyric        Songs_lyrics @relation(fields: [lyricId], references: [id])
+  rootNote     String
+  chordQuality String?      @default("")
+  slashChord   String?      @default("")
+  position     Int          @default(0)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@map("Songs_Chords")
+}
+
+// ============================================
+// FEED SOCIAL MODELS
+// ============================================
+
+enum PostType {
+  SONG_REQUEST // Pidiendo una canción
+  SONG_SHARE // Compartiendo una canción
+
+  @@map("PostType")
+}
+
+enum PostStatus {
+  ACTIVE
+  RESOLVED // Para requests que ya fueron resueltos
+  DELETED
+
+  @@map("PostStatus")
+}
+
+model Posts {
+  id     Int        @id @default(autoincrement())
+  type   PostType // request o share
+  status PostStatus @default(ACTIVE)
+
+  // Relaciones
+  authorId Int
+  author   Users @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  bandId Int // Banda del autor
+  band   Bands @relation("PostBand", fields: [bandId], references: [id], onDelete: Cascade)
+
+  // Para SONG_SHARE: canción que está compartiendo
+  sharedSongId Int?
+  sharedSong   Songs? @relation("SharedSong", fields: [sharedSongId], references: [id], onDelete: Cascade)
+
+  // Contenido
+  title       String  @db.VarChar(200) // Ej: "Busco 'Como en el cielo' de Elevation"
+  description String? @db.Text // Detalles adicionales
+
+  // Metadata para requests
+  requestedSongTitle String? @db.VarChar(200) // Si está pidiendo
+  requestedArtist    String? @db.VarChar(150)
+
+  // Engagement
+  blessings  Blessings[]
+  comments   Comments[]
+  songCopies SongCopies[] // Quién copió la canción compartida
+
+  // Timestamps
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@map("Songs_Chords")
+  @@index([type, status, createdAt])
+  @@index([authorId])
+  @@index([bandId])
+  @@index([sharedSongId])
+  @@map("Posts")
+}
+
+model Comments {
+  id      Int    @id @default(autoincrement())
+  content String @db.Text
+
+  // Relaciones
+  postId Int
+  post   Posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  authorId Int
+  author   Users @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+
+  // Reply system (opcional para MVP, útil después)
+  parentId Int?
+  parent   Comments?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies  Comments[] @relation("CommentReplies")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+  @@map("Comments")
+}
+
+model Blessings {
+  id Int @id @default(autoincrement())
+
+  postId Int
+  post   Posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   Users @relation("UserBlessings", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([postId, userId]) // Un usuario solo puede dar 1 blessing por post
+  @@index([userId])
+  @@index([postId])
+  @@map("Blessings")
+}
+
+model SongCopies {
+  id Int @id @default(autoincrement())
+
+  // Post del que se copió
+  postId Int
+  post   Posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // Canción original compartida
+  originalSongId Int
+  originalSong   Songs @relation("OriginalSongCopies", fields: [originalSongId], references: [id], onDelete: Cascade)
+
+  // Nueva canción creada (copia)
+  copiedSongId Int   @unique
+  copiedSong   Songs @relation("CopiedSong", fields: [copiedSongId], references: [id], onDelete: Cascade)
+
+  // Usuario que copió
+  userId Int
+  user   Users @relation("UserSongCopies", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Banda destino
+  targetBandId Int
+  targetBand   Bands @relation("BandReceivedSongs", fields: [targetBandId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@index([postId])
+  @@index([userId])
+  @@index([targetBandId])
+  @@map("SongCopies")
 }
