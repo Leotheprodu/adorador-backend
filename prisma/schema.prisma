@@ -32,6 +32,8 @@ model Users {
   membersofBands MembersofBands[]
   receivedInvitations BandInvitations[] @relation("InvitedUser")
   sentInvitations     BandInvitations[] @relation("Inviter")
+
+  @@map("Users")
 }
 
 
@@ -41,6 +43,8 @@ model Roles {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   users     Users[]
+
+  @@map("Roles")
 }
 
 
@@ -52,6 +56,8 @@ model Temporal_token_pool {
   type           String
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+
+  @@map("Temporal_token_pool")
 }
 
 
@@ -65,6 +71,8 @@ model Churches {
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
   memberships Memberships[]
+
+  @@map("Churches")
 }
 
 model Bands {
@@ -76,6 +84,8 @@ model Bands {
   invitations BandInvitations[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("Bands")
 }
 
 model MembersofBands {
@@ -90,6 +100,8 @@ model MembersofBands {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   isEventManager Boolean @default(false) // Controla si el miembro es el encargado de eventos de la banda
+
+  @@map("MembersofBands")
 }
 
 model BandInvitations {
@@ -108,6 +120,7 @@ model BandInvitations {
   @@index([invitedUserId, status])
   @@index([bandId])
   @@index([bandId, invitedUserId, status])
+  @@map("BandInvitations")
 }
 
 model Memberships {
@@ -122,6 +135,8 @@ model Memberships {
   createdAt DateTime   @default(now())
   updatedAt DateTime   @updatedAt
   @@unique([userId, churchId]) // Asegura que un usuario solo puede tener una membresía por iglesia
+
+  @@map("Memberships")
 }
 
 model ChurchMemberRoles {
@@ -136,12 +151,15 @@ model ChurchMemberRoles {
 
   @@index([membershipId])
   @@index([roleId])
+  @@map("ChurchMemberRoles")
 }
 model ChurchRoles {
   id          Int          @id @default(autoincrement())
   name        String       @unique // Nombre del rol (pastor, líder de alabanza, etc.)
   description String?      // Descripción del rol si es necesario
   churchRoles ChurchMemberRoles[]
+
+  @@map("ChurchRoles")
 }
 model Events {
   id        Int      @id @default(autoincrement())
@@ -152,6 +170,8 @@ model Events {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   songs     SongsEvents[]
+
+  @@map("Events")
 }
 
 model Songs {
@@ -168,6 +188,8 @@ model Songs {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   events  SongsEvents[]
+
+  @@map("Songs")
 }
 model SongsEvents {
   eventId Int
@@ -179,6 +201,7 @@ model SongsEvents {
 
 
   @@id([eventId, songId])
+  @@map("SongsEvents")
 }
 
 model Songs_Structures {
@@ -187,6 +210,8 @@ model Songs_Structures {
   lyrics    Songs_lyrics[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("Songs_Structures")
 }
 
 model Songs_lyrics {
@@ -200,6 +225,8 @@ model Songs_lyrics {
   position  Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("Songs_lyrics")
 }
 
 model Songs_Chords {
@@ -212,4 +239,6 @@ model Songs_Chords {
   position  Int     @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@map("Songs_Chords")
 }
