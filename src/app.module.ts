@@ -13,6 +13,7 @@ import { SongsChordsModule } from './songs-chords/songs-chords.module';
 import { TemporalTokenPoolModule } from './temporal-token-pool/temporal-token-pool.module';
 import { ScheduleModule } from '@nestjs/schedule';
 import { BandsModule } from './bands/bands.module';
+import { FeedModule } from './feed/feed.module';
 import { JwtUserMiddleware } from './auth/middlewares/jwt-user.middleware';
 
 @Module({
@@ -31,6 +32,7 @@ import { JwtUserMiddleware } from './auth/middlewares/jwt-user.middleware';
     TemporalTokenPoolModule,
     ScheduleModule.forRoot(),
     BandsModule,
+    FeedModule,
   ],
   controllers: [],
   providers: [],
