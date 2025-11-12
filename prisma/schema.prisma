@@ -198,10 +198,10 @@ model Songs {
   events      SongsEvents[]
 
   // Feed Social relations
-  sharedInPosts     Posts[]      @relation("SharedSong")
-  sharedInComments  Comments[]   @relation("CommentSharedSong")
-  originalCopies    SongCopies[] @relation("OriginalSongCopies")
-  copiedFrom        SongCopies?  @relation("CopiedSong")
+  sharedInPosts    Posts[]      @relation("SharedSong")
+  sharedInComments Comments[]   @relation("CommentSharedSong")
+  originalCopies   SongCopies[] @relation("OriginalSongCopies")
+  copiedFrom       SongCopies?  @relation("CopiedSong")
 
   @@unique([title, bandId], name: "unique_song_per_band")
   @@map("Songs")
@@ -298,8 +298,8 @@ model Posts {
   description String? @db.Text // Detalles adicionales
 
   // Metadata para requests
-  requestedSongTitle String? @db.VarChar(200) // Si está pidiendo
-  requestedArtist    String? @db.VarChar(150)
+  requestedSongTitle  String? @db.VarChar(200) // Si está pidiendo
+  requestedArtist     String? @db.VarChar(150)
   requestedYoutubeUrl String? @db.VarChar(300) // URL de YouTube para solicitudes
 
   // Engagement
@@ -340,6 +340,9 @@ model Comments {
 
   // Blessings para comentarios
   blessings CommentBlessings[]
+
+  // Canciones copiadas desde este comentario
+  songCopies SongCopies[] @relation("CommentSongCopies")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -387,9 +390,13 @@ model CommentBlessings {
 model SongCopies {
   id Int @id @default(autoincrement())
 
-  // Post del que se copió
-  postId Int
-  post   Posts @relation(fields: [postId], references: [id], onDelete: Cascade)
+  // Post del que se copió (opcional, puede ser null si se copió desde un comentario)
+  postId Int?
+  post   Posts? @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  // Comentario del que se copió (opcional, para respuestas a SONG_REQUEST)
+  commentId Int?
+  comment   Comments? @relation("CommentSongCopies", fields: [commentId], references: [id], onDelete: Cascade)
 
   // Canción original compartida
   originalSongId Int
@@ -410,6 +417,7 @@ model SongCopies {
   createdAt DateTime @default(now())
 
   @@index([postId])
+  @@index([commentId])
   @@index([userId])
   @@index([targetBandId])
   @@map("SongCopies")
