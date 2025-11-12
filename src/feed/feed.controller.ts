@@ -20,6 +20,7 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CopySongDto } from './dto/copy-song.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { CommentBlessingResponseDto } from './dto/comment-blessing-response.dto';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
   CheckLoginStatus,
@@ -136,10 +137,11 @@ export class FeedController {
   @ApiGetComments()
   async getComments(
     @Param('postId', ParseIntPipe) postId: number,
+    @GetUser() user: JwtPayload | undefined,
     @Res() res: Response,
   ) {
     try {
-      const comments = await this.feedService.getComments(postId);
+      const comments = await this.feedService.getComments(postId, user?.sub);
       res.status(HttpStatus.OK).send(comments);
     } catch (e) {
       catchHandle(e);
@@ -183,6 +185,24 @@ export class FeedController {
     }
   }
 
+  @Post('comments/:commentId/blessings')
+  @CheckLoginStatus('loggedIn')
+  async toggleCommentBlessing(
+    @Param('commentId', ParseIntPipe) commentId: number,
+    @GetUser() user: JwtPayload,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.feedService.toggleCommentBlessing(
+        commentId,
+        user.sub,
+      );
+      res.status(HttpStatus.OK).send(result);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
   @Post('posts/:postId/copy-song')
   @ApiCopySong()
   @CheckLoginStatus('loggedIn')
@@ -199,6 +219,30 @@ export class FeedController {
     try {
       const result = await this.feedService.copySong(
         postId,
+        copySongDto,
+        user.sub,
+      );
+      res.status(HttpStatus.CREATED).send(result);
+    } catch (e) {
+      catchHandle(e);
+    }
+  }
+
+  @Post('songs/:songId/copy')
+  @CheckLoginStatus('loggedIn')
+  @CheckUserMemberOfBand({
+    checkBy: 'bodyBandId',
+    key: 'targetBandId',
+  })
+  async copySongDirect(
+    @Param('songId', ParseIntPipe) songId: number,
+    @Body() copySongDto: CopySongDto,
+    @GetUser() user: JwtPayload,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.feedService.copySongDirect(
+        songId,
         copySongDto,
         user.sub,
       );

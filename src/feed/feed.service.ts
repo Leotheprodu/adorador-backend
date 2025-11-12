@@ -67,11 +67,13 @@ export class FeedService {
         sharedSong: {
           select: {
             id: true,
+            bandId: true,
             title: true,
             artist: true,
             key: true,
             tempo: true,
             songType: true,
+            youtubeLink: true,
           },
         },
         _count: {
@@ -126,11 +128,13 @@ export class FeedService {
         sharedSong: {
           select: {
             id: true,
+            bandId: true,
             title: true,
             artist: true,
             key: true,
             tempo: true,
             songType: true,
+            youtubeLink: true,
           },
         },
         _count: {
@@ -224,6 +228,7 @@ export class FeedService {
         sharedSong: {
           select: {
             id: true,
+            bandId: true,
             title: true,
             artist: true,
             key: true,
@@ -290,6 +295,7 @@ export class FeedService {
         sharedSong: {
           select: {
             id: true,
+            bandId: true,
             title: true,
             artist: true,
             key: true,
@@ -356,7 +362,10 @@ export class FeedService {
   /**
    * Obtener comentarios de un post
    */
-  async getComments(postId: number): Promise<CommentWithAuthor[]> {
+  async getComments(
+    postId: number,
+    userId?: number,
+  ): Promise<CommentWithAuthor[]> {
     // Verificar que el post existe
     const post = await this.prisma.posts.findUnique({
       where: { id: postId },
@@ -376,11 +385,59 @@ export class FeedService {
         author: {
           select: { id: true, name: true },
         },
+        sharedSong: {
+          select: {
+            id: true,
+            bandId: true,
+            title: true,
+            artist: true,
+            key: true,
+            tempo: true,
+            songType: true,
+            youtubeLink: true,
+          },
+        },
+        _count: {
+          select: {
+            blessings: true,
+          },
+        },
+        blessings: userId
+          ? {
+              where: { userId },
+              select: { id: true },
+              take: 1,
+            }
+          : false,
         replies: {
           include: {
             author: {
               select: { id: true, name: true },
             },
+            sharedSong: {
+              select: {
+                id: true,
+                bandId: true,
+                title: true,
+                artist: true,
+                key: true,
+                tempo: true,
+                songType: true,
+                youtubeLink: true,
+              },
+            },
+            _count: {
+              select: {
+                blessings: true,
+              },
+            },
+            blessings: userId
+              ? {
+                  where: { userId },
+                  select: { id: true },
+                  take: 1,
+                }
+              : false,
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -399,6 +456,8 @@ export class FeedService {
     createCommentDto: CreateCommentDto,
     userId: number,
   ): Promise<CommentWithAuthor> {
+    const { content, parentId, sharedSongId } = createCommentDto;
+
     // Verificar que el post existe
     const post = await this.prisma.posts.findUnique({
       where: { id: postId },
@@ -409,9 +468,9 @@ export class FeedService {
     }
 
     // Si es una respuesta, verificar que el comentario padre existe
-    if (createCommentDto.parentId) {
+    if (parentId) {
       const parentComment = await this.prisma.comments.findUnique({
-        where: { id: createCommentDto.parentId },
+        where: { id: parentId },
       });
 
       if (!parentComment || parentComment.postId !== postId) {
@@ -419,17 +478,61 @@ export class FeedService {
       }
     }
 
+    // Si está compartiendo una canción, validar que:
+    // 1. La canción existe
+    // 2. El usuario pertenece a la banda de esa canción
+    if (sharedSongId) {
+      const song = await this.prisma.songs.findUnique({
+        where: { id: sharedSongId },
+        include: {
+          band: {
+            include: {
+              members: {
+                where: { userId },
+              },
+            },
+          },
+        },
+      });
+
+      if (!song) {
+        throw new NotFoundException(
+          `Canción con ID ${sharedSongId} no encontrada`,
+        );
+      }
+
+      if (song.band.members.length === 0) {
+        throw new ForbiddenException(
+          'No perteneces a la banda de esta canción',
+        );
+      }
+    }
+
     // Crear comentario
     const comment = await this.prisma.comments.create({
       data: {
-        ...createCommentDto,
+        content,
         postId,
         authorId: userId,
+        parentId,
+        sharedSongId,
       },
       include: {
         author: {
           select: { id: true, name: true },
         },
+        sharedSong: sharedSongId
+          ? {
+              select: {
+                id: true,
+                title: true,
+                artist: true,
+                key: true,
+                tempo: true,
+                songType: true,
+              },
+            }
+          : false,
       },
     });
 
@@ -500,6 +603,78 @@ export class FeedService {
       this.feedGateway.emitNewBlessing({ postId, userId, count });
     } else {
       this.feedGateway.emitBlessingRemoved({ postId, userId, count });
+    }
+
+    return { blessed, count };
+  }
+
+  /**
+   * Toggle blessing en comentario (dar o quitar)
+   */
+  async toggleCommentBlessing(
+    commentId: number,
+    userId: number,
+  ): Promise<BlessingResponse> {
+    // Verificar que el comentario existe
+    const comment = await this.prisma.comments.findUnique({
+      where: { id: commentId },
+    });
+
+    if (!comment) {
+      throw new NotFoundException(
+        `Comentario con ID ${commentId} no encontrado`,
+      );
+    }
+
+    // Buscar blessing existente
+    const existingBlessing = await this.prisma.commentBlessings.findUnique({
+      where: {
+        commentId_userId: {
+          commentId,
+          userId,
+        },
+      },
+    });
+
+    let blessed: boolean;
+
+    if (existingBlessing) {
+      // Quitar blessing
+      await this.prisma.commentBlessings.delete({
+        where: { id: existingBlessing.id },
+      });
+      blessed = false;
+      this.logger.log(
+        `Usuario ${userId} quitó blessing de comentario ${commentId}`,
+      );
+    } else {
+      // Dar blessing
+      await this.prisma.commentBlessings.create({
+        data: {
+          commentId,
+          userId,
+        },
+      });
+      blessed = true;
+      this.logger.log(
+        `Usuario ${userId} dio blessing a comentario ${commentId}`,
+      );
+    }
+
+    // Contar blessings actuales
+    const count = await this.prisma.commentBlessings.count({
+      where: { commentId },
+    });
+
+    // Emitir evento de blessing (agregado o removido)
+    if (blessed) {
+      this.feedGateway.emitNewCommentBlessing({ commentId, userId, count });
+    } else {
+      this.feedGateway.emitCommentBlessingRemoved({
+        commentId,
+        userId,
+        count,
+      });
     }
 
     return { blessed, count };
@@ -651,6 +826,115 @@ export class FeedService {
       targetBandName: targetBand?.name || 'Banda',
       count: copiesCount,
     });
+
+    return {
+      success: true,
+      copiedSong: {
+        id: result.id,
+        title: result.title,
+        bandId: result.bandId,
+      },
+    };
+  }
+
+  /**
+   * Copiar canción directamente por songId (desde comentarios)
+   */
+  async copySongDirect(
+    songId: number,
+    copySongDto: CopySongDto,
+    userId: number,
+  ): Promise<CopySongResponse> {
+    const { targetBandId, newKey, newTempo } = copySongDto;
+
+    // Verificar que la canción existe y obtener todos sus datos
+    const originalSong = await this.prisma.songs.findUnique({
+      where: { id: songId },
+      include: {
+        lyrics: {
+          include: {
+            structure: true,
+            chords: true,
+          },
+        },
+      },
+    });
+
+    if (!originalSong) {
+      throw new NotFoundException(`Canción con ID ${songId} no encontrada`);
+    }
+
+    // Verificar que el usuario es miembro de la banda destino
+    const membership = await this.prisma.membersofBands.findFirst({
+      where: { userId, bandId: targetBandId, active: true },
+    });
+
+    if (!membership) {
+      throw new ForbiddenException(
+        'No eres miembro de la banda destino o tu membresía no está activa',
+      );
+    }
+
+    // Verificar si ya existe una canción con el mismo título en la banda destino
+    const existingSong = await this.prisma.songs.findFirst({
+      where: {
+        title: originalSong.title,
+        bandId: targetBandId,
+      },
+    });
+
+    if (existingSong) {
+      throw new BadRequestException(
+        'Ya tienes una canción con este título en tu banda',
+      );
+    }
+
+    // Copiar la canción con todas sus letras y acordes en una transacción
+    const result = await this.prisma.$transaction(async (tx) => {
+      // 1. Crear la canción nueva
+      const copiedSong = await tx.songs.create({
+        data: {
+          title: originalSong.title,
+          artist: originalSong.artist,
+          songType: originalSong.songType,
+          youtubeLink: originalSong.youtubeLink,
+          key: newKey || originalSong.key,
+          tempo: newTempo || originalSong.tempo,
+          bandId: targetBandId,
+        },
+      });
+
+      // 2. Copiar letras y acordes
+      for (const lyric of originalSong.lyrics) {
+        const copiedLyric = await tx.songs_lyrics.create({
+          data: {
+            songId: copiedSong.id,
+            structureId: lyric.structureId,
+            lyrics: lyric.lyrics,
+            position: lyric.position,
+          },
+        });
+
+        // Copiar acordes de esta letra
+        for (const chord of lyric.chords) {
+          await tx.songs_Chords.create({
+            data: {
+              lyricId: copiedLyric.id,
+              rootNote: chord.rootNote,
+              chordQuality: chord.chordQuality,
+              slashChord: chord.slashChord,
+              position: chord.position,
+            },
+          });
+        }
+      }
+
+      return copiedSong;
+    });
+
+    this.logger.log(
+      `Usuario ${userId} copió canción ${originalSong.id} a banda ${targetBandId} (nueva canción: ${result.id})`,
+    );
 
     return {
       success: true,

@@ -33,10 +33,11 @@ model Users {
   sentInvitations     BandInvitations[]     @relation("Inviter")
 
   // Feed Social relations
-  posts      Posts[]      @relation("PostAuthor")
-  comments   Comments[]   @relation("CommentAuthor")
-  blessings  Blessings[]  @relation("UserBlessings")
-  songCopies SongCopies[] @relation("UserSongCopies")
+  posts            Posts[]            @relation("PostAuthor")
+  comments         Comments[]         @relation("CommentAuthor")
+  blessings        Blessings[]        @relation("UserBlessings")
+  commentBlessings CommentBlessings[] @relation("UserCommentBlessings")
+  songCopies       SongCopies[]       @relation("UserSongCopies")
 
   @@map("Users")
 }
@@ -197,9 +198,10 @@ model Songs {
   events      SongsEvents[]
 
   // Feed Social relations
-  sharedInPosts  Posts[]      @relation("SharedSong")
-  originalCopies SongCopies[] @relation("OriginalSongCopies")
-  copiedFrom     SongCopies?  @relation("CopiedSong")
+  sharedInPosts     Posts[]      @relation("SharedSong")
+  sharedInComments  Comments[]   @relation("CommentSharedSong")
+  originalCopies    SongCopies[] @relation("OriginalSongCopies")
+  copiedFrom        SongCopies?  @relation("CopiedSong")
 
   @@unique([title, bandId], name: "unique_song_per_band")
   @@map("Songs")
@@ -327,16 +329,24 @@ model Comments {
   authorId Int
   author   Users @relation("CommentAuthor", fields: [authorId], references: [id], onDelete: Cascade)
 
+  // Para compartir canción como respuesta a SONG_REQUEST
+  sharedSongId Int?
+  sharedSong   Songs? @relation("CommentSharedSong", fields: [sharedSongId], references: [id], onDelete: Cascade)
+
   // Reply system (opcional para MVP, útil después)
   parentId Int?
   parent   Comments?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies  Comments[] @relation("CommentReplies")
+
+  // Blessings para comentarios
+  blessings CommentBlessings[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([postId, createdAt])
   @@index([authorId])
+  @@index([sharedSongId])
   @@map("Comments")
 }
 
@@ -355,6 +365,23 @@ model Blessings {
   @@index([userId])
   @@index([postId])
   @@map("Blessings")
+}
+
+model CommentBlessings {
+  id Int @id @default(autoincrement())
+
+  commentId Int
+  comment   Comments @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  userId Int
+  user   Users @relation("UserCommentBlessings", fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([commentId, userId]) // Un usuario solo puede dar 1 blessing por comentario
+  @@index([userId])
+  @@index([commentId])
+  @@map("CommentBlessings")
 }
 
 model SongCopies {

@@ -238,6 +238,36 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   /**
+   * Emitir nuevo blessing en comentario
+   */
+  emitNewCommentBlessing(data: {
+    commentId: number;
+    userId: number;
+    count: number;
+  }) {
+    this.logger.log(
+      `Emitiendo nuevo blessing en comentario ${data.commentId} (total: ${data.count})`,
+    );
+
+    this.broadcastToFeed('commentBlessed', data);
+  }
+
+  /**
+   * Emitir blessing removido de comentario
+   */
+  emitCommentBlessingRemoved(data: {
+    commentId: number;
+    userId: number;
+    count: number;
+  }) {
+    this.logger.log(
+      `Emitiendo blessing removido de comentario ${data.commentId} (total: ${data.count})`,
+    );
+
+    this.broadcastToFeed('commentBlessingRemoved', data);
+  }
+
+  /**
    * Emitir canción copiada
    */
   emitSongCopied(data: {

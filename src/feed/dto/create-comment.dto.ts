@@ -25,4 +25,14 @@ export class CreateCommentDto {
   @IsInt()
   @IsOptional()
   parentId?: number;
+
+  @ApiProperty({
+    description:
+      'ID de la canción a compartir en el comentario (para respuestas a solicitudes)',
+    example: 42,
+    required: false,
+  })
+  @IsInt()
+  @IsOptional()
+  sharedSongId?: number;
 }

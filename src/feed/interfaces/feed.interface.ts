@@ -39,12 +39,25 @@ export interface CommentWithAuthor {
   postId: number;
   authorId: number;
   parentId: number | null;
+  sharedSongId: number | null;
   createdAt: Date;
   updatedAt: Date;
   author: {
     id: number;
     name: string;
   };
+  sharedSong?: {
+    id: number;
+    title: string;
+    artist: string | null;
+    key: string | null;
+    tempo: number | null;
+    songType: string;
+  } | null;
+  _count?: {
+    blessings: number;
+  };
+  blessings?: { id: number }[];
   replies?: CommentWithAuthor[];
 }
 
