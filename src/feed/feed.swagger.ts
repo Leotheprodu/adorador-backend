@@ -304,9 +304,9 @@ export function ApiDeletePost() {
 export function ApiGetComments() {
   return applyDecorators(
     ApiOperation({
-      summary: 'Get comments from a post',
+      summary: 'Get comments from a post with pagination',
       description:
-        'Retrieve all comments for a specific post, including nested replies. Comments are ordered by creation date (newest first).',
+        'Retrieve comments for a specific post with cursor-based pagination, including nested replies. Comments are ordered by creation date (newest first).',
     }),
     ApiParam({
       name: 'postId',
@@ -314,34 +314,55 @@ export function ApiGetComments() {
       type: 'number',
       example: 1,
     }),
+    ApiQuery({
+      name: 'cursor',
+      description: 'ID del último comentario visto (cursor para paginación)',
+      type: 'number',
+      required: false,
+      example: 42,
+    }),
+    ApiQuery({
+      name: 'limit',
+      description: 'Cantidad de comentarios por página',
+      type: 'number',
+      required: false,
+      example: 10,
+    }),
     ApiOkResponse({
-      description: 'Comments retrieved successfully',
+      description: 'Comments retrieved successfully with pagination',
       schema: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            id: { type: 'number', example: 1 },
-            content: {
-              type: 'string',
-              example: 'Tengo esta canción! Te la comparto',
-            },
-            postId: { type: 'number', example: 1 },
-            authorId: { type: 'number', example: 5 },
-            parentId: { type: 'number', nullable: true, example: null },
-            author: {
+        type: 'object',
+        properties: {
+          items: {
+            type: 'array',
+            items: {
               type: 'object',
               properties: {
-                id: { type: 'number', example: 5 },
-                name: { type: 'string', example: 'María García' },
+                id: { type: 'number', example: 1 },
+                content: {
+                  type: 'string',
+                  example: 'Tengo esta canción! Te la comparto',
+                },
+                postId: { type: 'number', example: 1 },
+                authorId: { type: 'number', example: 5 },
+                parentId: { type: 'number', nullable: true, example: null },
+                author: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'number', example: 5 },
+                    name: { type: 'string', example: 'María García' },
+                  },
+                },
+                replies: {
+                  type: 'array',
+                  items: { type: 'object' },
+                },
+                createdAt: { type: 'string', format: 'date-time' },
               },
             },
-            replies: {
-              type: 'array',
-              items: { type: 'object' },
-            },
-            createdAt: { type: 'string', format: 'date-time' },
           },
+          nextCursor: { type: 'number', nullable: true, example: 42 },
+          hasMore: { type: 'boolean', example: true },
         },
       },
     }),

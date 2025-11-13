@@ -33,6 +33,12 @@ export interface FeedResponse {
   hasMore: boolean;
 }
 
+export interface CommentsResponse {
+  items: CommentWithAuthor[];
+  nextCursor: number | null;
+  hasMore: boolean;
+}
+
 export interface CommentWithAuthor {
   id: number;
   content: string;

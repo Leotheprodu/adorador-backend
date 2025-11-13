@@ -14,6 +14,7 @@ import { TemporalTokenPoolModule } from './temporal-token-pool/temporal-token-po
 import { ScheduleModule } from '@nestjs/schedule';
 import { BandsModule } from './bands/bands.module';
 import { FeedModule } from './feed/feed.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { JwtUserMiddleware } from './auth/middlewares/jwt-user.middleware';
 
 @Module({
@@ -33,6 +34,7 @@ import { JwtUserMiddleware } from './auth/middlewares/jwt-user.middleware';
     ScheduleModule.forRoot(),
     BandsModule,
     FeedModule,
+    NotificationsModule,
   ],
   controllers: [],
   providers: [],

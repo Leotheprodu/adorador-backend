@@ -38,6 +38,7 @@ model Users {
   blessings        Blessings[]        @relation("UserBlessings")
   commentBlessings CommentBlessings[] @relation("UserCommentBlessings")
   songCopies       SongCopies[]       @relation("UserSongCopies")
+  notifications    Notifications[]    @relation("UserNotifications")
 
   @@map("Users")
 }
@@ -421,4 +422,44 @@ model SongCopies {
   @@index([userId])
   @@index([targetBandId])
   @@map("SongCopies")
+}
+
+// Notificaciones generales del sistema
+model Notifications {
+  id Int @id @default(autoincrement())
+
+  // Usuario que recibe la notificación
+  userId Int
+  user   Users @relation("UserNotifications", fields: [userId], references: [id], onDelete: Cascade)
+
+  // Tipo de notificación
+  type NotificationType
+
+  // Título y contenido
+  title   String
+  message String @db.Text
+
+  // Datos adicionales en JSON (postId, commentId, invitationId, etc.)
+  metadata Json?
+
+  // Estado
+  read Boolean @default(false)
+
+  // Timestamps
+  createdAt DateTime @default(now())
+  readAt    DateTime?
+
+  @@index([userId, read])
+  @@index([createdAt])
+  @@map("Notifications")
+}
+
+enum NotificationType {
+  COMMENT_ON_POST // Alguien comentó en tu publicación
+  REPLY_TO_COMMENT // Alguien respondió a tu comentario
+  BLESSING_ON_POST // Alguien bendijo tu publicación
+  SONG_COPIED // Alguien copió tu canción compartida
+  BAND_INVITATION // Invitación a una banda
+  BAND_INVITATION_ACCEPTED // Aceptaron tu invitación
+  BAND_INVITATION_REJECTED // Rechazaron tu invitación
 }

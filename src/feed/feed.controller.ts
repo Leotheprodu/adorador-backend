@@ -20,6 +20,7 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CopySongDto } from './dto/copy-song.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { CommentsPaginationDto } from './dto/comments-pagination.dto';
 import { CommentBlessingResponseDto } from './dto/comment-blessing-response.dto';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
 import {
@@ -137,11 +138,16 @@ export class FeedController {
   @ApiGetComments()
   async getComments(
     @Param('postId', ParseIntPipe) postId: number,
+    @Query() paginationDto: CommentsPaginationDto,
     @GetUser() user: JwtPayload | undefined,
     @Res() res: Response,
   ) {
     try {
-      const comments = await this.feedService.getComments(postId, user?.sub);
+      const comments = await this.feedService.getComments(
+        postId,
+        paginationDto,
+        user?.sub,
+      );
       res.status(HttpStatus.OK).send(comments);
     } catch (e) {
       catchHandle(e);
