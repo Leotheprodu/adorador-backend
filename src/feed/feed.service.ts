@@ -13,15 +13,20 @@ import { UpdatePostDto } from './dto/update-post.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { CopySongDto } from './dto/copy-song.dto';
 import { PaginationDto } from './dto/pagination.dto';
+import { CommentsPaginationDto } from './dto/comments-pagination.dto';
 import {
   FeedResponse,
+  CommentsResponse,
   PostWithRelations,
   CommentWithAuthor,
   BlessingResponse,
   CopySongResponse,
 } from './interfaces/feed.interface';
-import { Prisma, PostType, PostStatus } from '@prisma/client';
+import { Prisma, PostType, PostStatus, NotificationType } from '@prisma/client';
 import { FeedGateway } from './feed.gateway';
+import { EventsGateway } from '../events/events.gateway';
+import { NotificationsService } from '../notifications/notifications.service';
+import { NotificationsGateway } from '../notifications/notifications.gateway';
 
 @Injectable()
 export class FeedService {
@@ -31,6 +36,11 @@ export class FeedService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => FeedGateway))
     private feedGateway: FeedGateway,
+    private eventsGateway: EventsGateway,
+    @Inject(forwardRef(() => NotificationsService))
+    private notificationsService: NotificationsService,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private notificationsGateway: NotificationsGateway,
   ) {}
 
   /**
@@ -360,12 +370,13 @@ export class FeedService {
   }
 
   /**
-   * Obtener comentarios de un post
+   * Obtener comentarios de un post con paginación
    */
   async getComments(
     postId: number,
+    paginationDto: CommentsPaginationDto,
     userId?: number,
-  ): Promise<CommentWithAuthor[]> {
+  ): Promise<CommentsResponse> {
     // Verificar que el post existe
     const post = await this.prisma.posts.findUnique({
       where: { id: postId },
@@ -375,12 +386,49 @@ export class FeedService {
       throw new NotFoundException(`Post con ID ${postId} no encontrado`);
     }
 
-    // Obtener comentarios principales (sin padre)
+    const { cursor, limit = 10 } = paginationDto;
+
+    console.log('🔍 Parámetros de paginación:', { cursor, limit, postId });
+
+    // Debug: contar comentarios para ver la discrepancia
+    const totalComments = await this.prisma.comments.count({
+      where: { postId },
+    });
+
+    const mainComments = await this.prisma.comments.count({
+      where: { postId, parentId: null },
+    });
+
+    console.log('📊 Conteos de comentarios:', {
+      totalComments,
+      mainComments,
+      repliesCount: totalComments - mainComments,
+    });
+
+    // Debug: ver todas las replies por comentario principal
+    const allRepliesByParent = await this.prisma.comments.findMany({
+      where: {
+        postId,
+        parentId: { not: null },
+      },
+      select: {
+        id: true,
+        parentId: true,
+        content: true,
+      },
+      orderBy: { createdAt: 'asc' },
+    });
+
+    console.log('🔍 Todas las replies en DB:', allRepliesByParent);
+
+    // Obtener comentarios principales (sin padre) con paginación
     const comments = await this.prisma.comments.findMany({
       where: {
         postId,
         parentId: null,
+        ...(cursor && { id: { lt: cursor } }), // Comentarios anteriores al cursor
       },
+      take: limit + 1, // Tomamos uno extra para saber si hay más
       include: {
         author: {
           select: { id: true, name: true },
@@ -400,6 +448,7 @@ export class FeedService {
         _count: {
           select: {
             blessings: true,
+            songCopies: true,
           },
         },
         blessings: userId
@@ -429,6 +478,7 @@ export class FeedService {
             _count: {
               select: {
                 blessings: true,
+                songCopies: true,
               },
             },
             blessings: userId
@@ -438,6 +488,40 @@ export class FeedService {
                   take: 1,
                 }
               : false,
+            // Agregar replies anidadas (nivel 3)
+            replies: {
+              include: {
+                author: {
+                  select: { id: true, name: true },
+                },
+                sharedSong: {
+                  select: {
+                    id: true,
+                    bandId: true,
+                    title: true,
+                    artist: true,
+                    key: true,
+                    tempo: true,
+                    songType: true,
+                    youtubeLink: true,
+                  },
+                },
+                _count: {
+                  select: {
+                    blessings: true,
+                    songCopies: true,
+                  },
+                },
+                blessings: userId
+                  ? {
+                      where: { userId },
+                      select: { id: true },
+                      take: 1,
+                    }
+                  : false,
+              },
+              orderBy: { createdAt: 'asc' },
+            },
           },
           orderBy: { createdAt: 'asc' },
         },
@@ -445,7 +529,40 @@ export class FeedService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return comments as CommentWithAuthor[];
+    // Verificar si hay más comentarios disponibles
+    const hasMore = comments.length > limit;
+    const items = hasMore ? comments.slice(0, -1) : comments;
+
+    const response = {
+      items: items as CommentWithAuthor[],
+      nextCursor: hasMore ? items[items.length - 1].id : null,
+      hasMore,
+    };
+
+    console.log('📊 Respuesta de comentarios:', {
+      itemsCount: response.items.length,
+      hasMore: response.hasMore,
+      nextCursor: response.nextCursor,
+      totalCommentsWithReplies: response.items.reduce(
+        (total, comment) => total + 1 + (comment.replies?.length || 0),
+        0,
+      ),
+    });
+
+    // Log detallado de cada comentario
+    response.items.forEach((comment, index) => {
+      console.log(`📝 Comentario ${index + 1}:`, {
+        id: comment.id,
+        content: comment.content.substring(0, 50) + '...',
+        repliesCount: comment.replies?.length || 0,
+        replies: comment.replies?.map((r) => ({
+          id: r.id,
+          content: r.content.substring(0, 30) + '...',
+        })),
+      });
+    });
+
+    return response;
   }
 
   /**
@@ -543,6 +660,91 @@ export class FeedService {
     // Emitir evento de nuevo comentario
     this.feedGateway.emitNewComment(commentWithAuthor);
 
+    // Crear notificación para el autor del post (si no es el mismo usuario)
+    if (post.authorId !== userId && !parentId) {
+      const commentAuthor = await this.prisma.users.findUnique({
+        where: { id: userId },
+        select: { name: true },
+      });
+
+      try {
+        const notification = await this.notificationsService.createNotification(
+          post.authorId,
+          NotificationType.COMMENT_ON_POST,
+          'Nuevo comentario',
+          `${commentAuthor?.name || 'Alguien'} comentó en tu publicación`,
+          {
+            postId,
+            commentId: comment.id,
+            authorId: userId,
+            authorName: commentAuthor?.name,
+          },
+        );
+
+        // Emitir notificación en tiempo real
+        this.notificationsGateway.emitNotification(post.authorId, notification);
+
+        // Actualizar contador
+        const unreadCount = await this.notificationsService.getUnreadCount(
+          post.authorId,
+        );
+        this.notificationsGateway.emitUnreadCountUpdate(
+          post.authorId,
+          unreadCount,
+        );
+      } catch (error) {
+        this.logger.error(`Error creando notificación: ${error.message}`);
+      }
+    }
+
+    // Si es una respuesta a un comentario, notificar al autor del comentario padre
+    if (parentId) {
+      const parentComment = await this.prisma.comments.findUnique({
+        where: { id: parentId },
+      });
+
+      if (parentComment && parentComment.authorId !== userId) {
+        const commentAuthor = await this.prisma.users.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+
+        try {
+          const notification =
+            await this.notificationsService.createNotification(
+              parentComment.authorId,
+              NotificationType.REPLY_TO_COMMENT,
+              'Nueva respuesta',
+              `${commentAuthor?.name || 'Alguien'} respondió a tu comentario`,
+              {
+                postId,
+                commentId: comment.id,
+                parentCommentId: parentId,
+                authorId: userId,
+                authorName: commentAuthor?.name,
+              },
+            );
+
+          // Emitir notificación en tiempo real
+          this.notificationsGateway.emitNotification(
+            parentComment.authorId,
+            notification,
+          );
+
+          // Actualizar contador
+          const unreadCount = await this.notificationsService.getUnreadCount(
+            parentComment.authorId,
+          );
+          this.notificationsGateway.emitUnreadCountUpdate(
+            parentComment.authorId,
+            unreadCount,
+          );
+        } catch (error) {
+          this.logger.error(`Error creando notificación: ${error.message}`);
+        }
+      }
+    }
+
     return commentWithAuthor;
   }
 
@@ -601,6 +803,48 @@ export class FeedService {
     // Emitir evento de blessing (agregado o removido)
     if (blessed) {
       this.feedGateway.emitNewBlessing({ postId, userId, count });
+
+      // Crear notificación si no es el mismo usuario
+      if (post.authorId !== userId) {
+        const blessingUser = await this.prisma.users.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+
+        try {
+          const notification =
+            await this.notificationsService.createNotification(
+              post.authorId,
+              NotificationType.BLESSING_ON_POST,
+              'Nueva bendición',
+              `${blessingUser?.name || 'Alguien'} bendijo tu publicación`,
+              {
+                postId,
+                userId,
+                userName: blessingUser?.name,
+              },
+            );
+
+          // Emitir notificación en tiempo real
+          this.notificationsGateway.emitNotification(
+            post.authorId,
+            notification,
+          );
+
+          // Actualizar contador
+          const unreadCount = await this.notificationsService.getUnreadCount(
+            post.authorId,
+          );
+          this.notificationsGateway.emitUnreadCountUpdate(
+            post.authorId,
+            unreadCount,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Error creando notificación de blessing: ${error.message}`,
+          );
+        }
+      }
     } else {
       this.feedGateway.emitBlessingRemoved({ postId, userId, count });
     }
@@ -669,6 +913,49 @@ export class FeedService {
     // Emitir evento de blessing (agregado o removido)
     if (blessed) {
       this.feedGateway.emitNewCommentBlessing({ commentId, userId, count });
+
+      // Crear notificación si no es el mismo usuario
+      if (comment.authorId !== userId) {
+        const blessingUser = await this.prisma.users.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+
+        try {
+          const notification =
+            await this.notificationsService.createNotification(
+              comment.authorId,
+              NotificationType.BLESSING_ON_POST,
+              'Nueva bendición',
+              `${blessingUser?.name || 'Alguien'} bendijo tu comentario`,
+              {
+                postId: comment.postId,
+                commentId,
+                userId,
+                userName: blessingUser?.name,
+              },
+            );
+
+          // Emitir notificación en tiempo real
+          this.notificationsGateway.emitNotification(
+            comment.authorId,
+            notification,
+          );
+
+          // Actualizar contador
+          const unreadCount = await this.notificationsService.getUnreadCount(
+            comment.authorId,
+          );
+          this.notificationsGateway.emitUnreadCountUpdate(
+            comment.authorId,
+            unreadCount,
+          );
+        } catch (error) {
+          this.logger.error(
+            `Error creando notificación de blessing en comentario: ${error.message}`,
+          );
+        }
+      }
     } else {
       this.feedGateway.emitCommentBlessingRemoved({
         commentId,
@@ -818,7 +1105,7 @@ export class FeedService {
       where: { postId },
     });
 
-    // Emitir evento de canción copiada
+    // Emitir evento de canción copiada (para el feed)
     this.feedGateway.emitSongCopied({
       postId,
       userId,
@@ -826,6 +1113,24 @@ export class FeedService {
       targetBandName: targetBand?.name || 'Banda',
       count: copiesCount,
     });
+
+    // Emitir evento de nueva canción creada en la banda (para administración)
+    try {
+      this.eventsGateway.server.emit(`bandSongCreated-${targetBandId}`, {
+        songId: result.id,
+        bandId: targetBandId,
+        title: result.title,
+        artist: result.artist,
+      });
+
+      this.logger.log(
+        `✅ Emitido bandSongCreated-${targetBandId} para canción copiada ${result.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Error emitiendo WebSocket para canción copiada ${result.id}: ${error.message}`,
+      );
+    }
 
     return {
       success: true,
@@ -845,7 +1150,7 @@ export class FeedService {
     copySongDto: CopySongDto,
     userId: number,
   ): Promise<CopySongResponse> {
-    const { targetBandId, newKey, newTempo } = copySongDto;
+    const { targetBandId, newKey, newTempo, commentId } = copySongDto;
 
     // Verificar que la canción existe y obtener todos sus datos
     const originalSong = await this.prisma.songs.findUnique({
@@ -929,12 +1234,75 @@ export class FeedService {
         }
       }
 
+      // 3. Registrar la copia en SongCopies
+      await tx.songCopies.create({
+        data: {
+          commentId: commentId || null,
+          originalSongId: originalSong.id,
+          copiedSongId: copiedSong.id,
+          userId,
+          targetBandId,
+        },
+      });
+
       return copiedSong;
     });
 
     this.logger.log(
       `Usuario ${userId} copió canción ${originalSong.id} a banda ${targetBandId} (nueva canción: ${result.id})`,
     );
+
+    // Obtener información del usuario y banda para el evento
+    const user = await this.prisma.users.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    });
+
+    const targetBand = await this.prisma.bands.findUnique({
+      where: { id: targetBandId },
+      select: { name: true },
+    });
+
+    // Si hay commentId, incrementar el contador de ese comentario específico
+    if (commentId) {
+      const copiesCount = await this.prisma.songCopies.count({
+        where: { commentId },
+      });
+
+      // Obtener el postId del comentario
+      const comment = await this.prisma.comments.findUnique({
+        where: { id: commentId },
+        select: { postId: true },
+      });
+
+      // Emitir evento de canción copiada desde comentario (para el feed)
+      this.feedGateway.emitSongCopiedFromComment({
+        commentId,
+        postId: comment?.postId,
+        userId,
+        userName: user?.name || 'Usuario',
+        targetBandName: targetBand?.name || 'Banda',
+        count: copiesCount,
+      });
+    }
+
+    // Emitir evento de nueva canción creada en la banda (para administración)
+    try {
+      this.eventsGateway.server.emit(`bandSongCreated-${targetBandId}`, {
+        songId: result.id,
+        bandId: targetBandId,
+        title: result.title,
+        artist: result.artist,
+      });
+
+      this.logger.log(
+        `✅ Emitido bandSongCreated-${targetBandId} para canción copiada desde comentario ${result.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Error emitiendo WebSocket para canción copiada desde comentario ${result.id}: ${error.message}`,
+      );
+    }
 
     return {
       success: true,

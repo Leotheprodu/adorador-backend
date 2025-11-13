@@ -14,9 +14,29 @@ export class SongsService {
     private eventsGateway: EventsGateway,
   ) {}
   async create(createSongDto: CreateSongDto, bandId: number) {
-    return await this.prisma.songs.create({
+    const newSong = await this.prisma.songs.create({
       data: { ...createSongDto, bandId },
     });
+
+    try {
+      // Emitir evento WebSocket para notificar sobre la nueva canción
+      this.eventsGateway.server.emit(`bandSongCreated-${bandId}`, {
+        songId: newSong.id,
+        bandId: bandId,
+        title: newSong.title,
+        artist: newSong.artist,
+      });
+
+      this.logger.log(
+        `✅ Emitido bandSongCreated-${bandId} para nueva canción ${newSong.id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Error emitiendo WebSocket para nueva canción ${newSong.id}: ${error.message}`,
+      );
+    }
+
+    return newSong;
   }
 
   async findAll(bandId: number) {
@@ -170,6 +190,19 @@ export class SongsService {
           `Canción ${id} actualizada pero no está en ningún evento activo`,
         );
       }
+
+      // 5. Emitir evento WebSocket para la página de administración de banda
+      this.eventsGateway.server.emit(`bandSongUpdated-${bandId}`, {
+        songId: id,
+        bandId: bandId,
+        title: updatedSong.title,
+        artist: updatedSong.artist,
+        changeType: this.determineChangeType(updateSongDto),
+      });
+
+      this.logger.log(
+        `✅ Emitido bandSongUpdated-${bandId} para canción ${id}`,
+      );
     } catch (error) {
       // No fallar la actualización si el WebSocket falla
       this.logger.error(
@@ -181,9 +214,27 @@ export class SongsService {
   }
 
   async remove(id: number, bandId: number) {
-    return await this.prisma.songs.delete({
+    const deletedSong = await this.prisma.songs.delete({
       where: { id, bandId },
     });
+
+    try {
+      // Emitir evento WebSocket para notificar sobre la canción eliminada
+      this.eventsGateway.server.emit(`bandSongDeleted-${bandId}`, {
+        songId: id,
+        bandId: bandId,
+      });
+
+      this.logger.log(
+        `✅ Emitido bandSongDeleted-${bandId} para canción eliminada ${id}`,
+      );
+    } catch (error) {
+      this.logger.error(
+        `❌ Error emitiendo WebSocket para canción eliminada ${id}: ${error.message}`,
+      );
+    }
+
+    return deletedSong;
   }
 
   async findAllSongs(page: number, limit: number) {

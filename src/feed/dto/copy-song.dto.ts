@@ -27,4 +27,14 @@ export class CopySongDto {
   @IsInt()
   @IsOptional()
   newTempo?: number;
+
+  @ApiProperty({
+    description:
+      'ID del comentario desde el cual se copió la canción (opcional)',
+    example: 15,
+    required: false,
+  })
+  @IsInt()
+  @IsOptional()
+  commentId?: number;
 }

@@ -284,6 +284,24 @@ export class FeedGateway implements OnGatewayConnection, OnGatewayDisconnect {
     this.broadcastToFeed('songCopied', data);
   }
 
+  /**
+   * Emitir canción copiada desde comentario
+   */
+  emitSongCopiedFromComment(data: {
+    commentId: number;
+    postId?: number;
+    userId: number;
+    userName: string;
+    targetBandName: string;
+    count: number;
+  }) {
+    this.logger.log(
+      `Emitiendo canción copiada desde comentario ${data.commentId} por ${data.userName}`,
+    );
+
+    this.broadcastToFeed('songCopiedFromComment', data);
+  }
+
   // ============================================
   // MÉTODOS PRIVADOS DE UTILIDAD
   // ============================================
