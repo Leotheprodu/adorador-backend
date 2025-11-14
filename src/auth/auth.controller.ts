@@ -314,7 +314,7 @@ export class AuthController {
         status: 'success',
         resetToken,
         phone: user.phone,
-        whatsappMessage: `Para restablecer tu contraseña en Adorador, envía este mensaje al bot de WhatsApp ${process.env.WHATSAPP_BOT_NUMBER || '+50663017707'}: "resetpass-adorador:${resetToken}"`,
+        whatsappMessage: `Para restablecer tu contraseña en Zamr, envía este mensaje al bot de WhatsApp ${process.env.WHATSAPP_BOT_NUMBER || '+50663017707'}: "resetpass-adorador:${resetToken}"`,
         message:
           'Token de restablecimiento generado. Envía el mensaje por WhatsApp para continuar.',
       });
@@ -412,9 +412,9 @@ export class AuthController {
       // Test simple sin template
       await this.emailService['mailService'].sendMail({
         to: body.email,
-        from: `"Adorador Test" <${process.env.EMAIL_USERNAME}>`,
-        subject: 'Test Email - Adorador Simple',
-        html: '<h1>Test Email</h1><p>Este es un email de prueba desde Adorador.</p>',
+        from: `"Zamr Test" <${process.env.EMAIL_USERNAME}>`,
+        subject: 'Test Email - Zamr Simple',
+        html: '<h1>Test Email</h1><p>Este es un email de prueba desde Zamr.</p>',
       });
 
       res.status(HttpStatus.OK).send({

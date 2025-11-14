@@ -31,7 +31,7 @@ async function bootstrap() {
     }),
   );
   const config = new DocumentBuilder()
-    .setTitle('Adorador API')
+    .setTitle('Zamr API')
     .setDescription(
       'API REST para la gestión de bandas de adoración, eventos, canciones e iglesias',
     )
