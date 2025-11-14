@@ -9,6 +9,7 @@ import {
   UseGuards,
   HttpCode,
   HttpStatus,
+  Res,
 } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
@@ -23,6 +24,8 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
+import { catchHandle } from 'src/chore/utils/catchHandle';
+import { Response } from 'express';
 
 @ApiTags('Notifications')
 @ApiBearerAuth()
@@ -43,6 +46,7 @@ export class NotificationsController {
     @Query() paginationDto: NotificationPaginationDto,
   ) {
     const userId = user.sub;
+
     return this.notificationsService.getNotifications(userId, paginationDto);
   }
 
@@ -58,16 +62,23 @@ export class NotificationsController {
 
   @Patch(':id/read')
   @CheckLoginStatus('loggedIn')
-  @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Marcar notificación como leída' })
   @ApiParam({ name: 'id', type: Number })
   @ApiResponse({ status: 204, description: 'Notificación marcada como leída' })
   async markAsRead(
     @Param('id') notificationId: string,
     @GetUser() user: { sub: number },
+    @Res() res: Response,
   ) {
     const userId = user.sub;
-    await this.notificationsService.markAsRead(+notificationId, userId);
+    try {
+      await this.notificationsService.markAsRead(+notificationId, userId);
+      res
+        .status(HttpStatus.OK)
+        .send({ message: 'Notificación marcada como leída' });
+    } catch (e) {
+      catchHandle(e);
+    }
   }
 
   @Patch('read-all')
