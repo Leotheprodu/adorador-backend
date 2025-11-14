@@ -106,7 +106,7 @@ export class EmailService {
         await this.sendEmail({
           email,
           subject: 'verifique su correo electronico',
-          from: `"Adorador" <${process.env.EMAIL_USERNAME}>`,
+          from: `"Zamr" <${process.env.EMAIL_USERNAME}>`,
           template: 'user-sign_up',
           context: {
             link: `${frontEndUrl}/auth/verify-email?token=${token}`,
@@ -158,7 +158,7 @@ export class EmailService {
       await this.sendEmail({
         email,
         subject: 'Restablecer contraseña',
-        from: `"Adorador" <${process.env.EMAIL_USERNAME}>`,
+        from: `"Zamr" <${process.env.EMAIL_USERNAME}>`,
         template: 'forgot-password',
         context: {
           link: `${frontEndUrl}/auth/reset-password?token=${token}`,
@@ -273,7 +273,7 @@ export class EmailService {
       // Crear una promesa de timeout para el test
       const testPromise = this.mailService.sendMail({
         to: 'test-connectivity@example.com',
-        from: `"Adorador Test" <${process.env.EMAIL_USERNAME}>`,
+        from: `"Zamr Test" <${process.env.EMAIL_USERNAME}>`,
         subject: 'Connectivity Test',
         text: 'This is a connectivity test',
       });
