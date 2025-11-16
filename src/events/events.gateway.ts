@@ -700,4 +700,81 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       activeKeys: activeKeys,
     };
   }
+
+  // Obtener cantidad de clientes conectados
+  public getConnectedClientsCount(): number {
+    return this.connectedClients.size;
+  }
+
+  // Obtener cantidad de eventos activos
+  public getActiveEventsCount(): number {
+    return this.eventConnections.size;
+  }
+
+  // Obtener métricas detalladas por evento
+  public getEventMetrics(eventId: number): {
+    totalUsers: number;
+    authenticatedUsers: number;
+    guestUsers: number;
+    usersList: Array<{ id?: number; name: string; isAuthenticated: boolean }>;
+  } | null {
+    const connectedSocketIds = this.eventConnections.get(eventId);
+    if (!connectedSocketIds) {
+      return null;
+    }
+
+    const usersList = [];
+    let authenticatedCount = 0;
+    let guestCount = 0;
+
+    for (const socketId of connectedSocketIds) {
+      const client = this.connectedClients.get(socketId);
+      if (client) {
+        if (client.isAuthenticated && client.userName) {
+          usersList.push({
+            id: client.userId,
+            name: client.userName,
+            isAuthenticated: true,
+          });
+          authenticatedCount++;
+        } else {
+          usersList.push({
+            name: 'Invitado',
+            isAuthenticated: false,
+          });
+          guestCount++;
+        }
+      }
+    }
+
+    return {
+      totalUsers: usersList.length,
+      authenticatedUsers: authenticatedCount,
+      guestUsers: guestCount,
+      usersList,
+    };
+  }
+
+  // Obtener todas las métricas del sistema
+  public getSystemMetrics() {
+    const eventsMetrics = [];
+    for (const [eventId] of this.eventConnections.entries()) {
+      const metrics = this.getEventMetrics(eventId);
+      if (metrics) {
+        eventsMetrics.push({
+          eventId,
+          ...metrics,
+        });
+      }
+    }
+
+    return {
+      totalConnectedClients: this.connectedClients.size,
+      activeEvents: this.eventConnections.size,
+      rateLimiting: this.getRateLimitStats(),
+      cachedEventManagers: this.eventManagersCache.size,
+      cachedMessages: this.lastMessages.size,
+      events: eventsMetrics,
+    };
+  }
 }

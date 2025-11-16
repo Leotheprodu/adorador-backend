@@ -24,7 +24,7 @@ import {
   ApiParam,
   ApiQuery,
 } from '@nestjs/swagger';
-import { catchHandle } from 'src/chore/utils/catchHandle';
+import { catchHandle } from '../chore/utils/catchHandle';
 import { Response } from 'express';
 
 @ApiTags('Notifications')

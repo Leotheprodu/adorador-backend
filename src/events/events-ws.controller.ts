@@ -7,6 +7,9 @@ import {
   HttpStatus,
   Res,
   HttpException,
+  Get,
+  Param,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { Response } from 'express';
 import { EventsGateway } from './events.gateway';
@@ -105,5 +108,89 @@ export class EventsGatewayController {
     } catch (e) {
       catchHandle(e);
     }
+  }
+
+  // 📊 Endpoints de métricas para monitoreo
+
+  /**
+   * Obtener métricas generales del sistema WebSocket
+   * Uso: GET /events-ws/metrics
+   */
+  @Get('metrics')
+  getSystemMetrics() {
+    try {
+      const metrics = this.eventsGateway.getSystemMetrics();
+      const memoryUsage = process.memoryUsage();
+
+      return {
+        timestamp: new Date().toISOString(),
+        uptime: process.uptime(),
+        websocket: metrics,
+        memory: {
+          heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024), // MB
+          heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024), // MB
+          heapUsedPercent: Math.round(
+            (memoryUsage.heapUsed / memoryUsage.heapTotal) * 100,
+          ),
+          rss: Math.round(memoryUsage.rss / 1024 / 1024), // MB
+        },
+      };
+    } catch (e) {
+      throw new HttpException(
+        'Error getting metrics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Obtener métricas de un evento específico
+   * Uso: GET /events-ws/metrics/event/:eventId
+   */
+  @Get('metrics/event/:eventId')
+  getEventMetrics(@Param('eventId', ParseIntPipe) eventId: number) {
+    try {
+      const metrics = this.eventsGateway.getEventMetrics(eventId);
+
+      if (!metrics) {
+        return {
+          eventId,
+          message: 'No users connected to this event',
+          totalUsers: 0,
+          authenticatedUsers: 0,
+          guestUsers: 0,
+          usersList: [],
+        };
+      }
+
+      return {
+        eventId,
+        timestamp: new Date().toISOString(),
+        ...metrics,
+      };
+    } catch (e) {
+      throw new HttpException(
+        'Error getting event metrics',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
+  }
+
+  /**
+   * Health check básico
+   * Uso: GET /events-ws/health
+   */
+  @Get('health')
+  healthCheck() {
+    const connectedClients = this.eventsGateway.getConnectedClientsCount();
+    const activeEvents = this.eventsGateway.getActiveEventsCount();
+
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      connectedClients,
+      activeEvents,
+    };
   }
 }
