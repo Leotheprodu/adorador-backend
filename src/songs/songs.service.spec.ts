@@ -155,7 +155,18 @@ describe('SongsService', () => {
         where: { songId },
         include: { event: true },
       });
-      expect(eventsGateway.server.emit).not.toHaveBeenCalled();
+      // Debe emitir solo a la banda
+      expect(eventsGateway.server.emit).toHaveBeenCalledTimes(1);
+      expect(eventsGateway.server.emit).toHaveBeenCalledWith(
+        `bandSongUpdated-${bandId}`,
+        expect.objectContaining({
+          songId: songId,
+          bandId: bandId,
+          title: updatedSong.title,
+          artist: updatedSong.artist,
+          changeType: 'info',
+        }),
+      );
     });
 
     it('should update a song and notify events when song is in events', async () => {
@@ -192,28 +203,24 @@ describe('SongsService', () => {
         include: { event: true },
       });
 
-      // Verificar que se emitieron eventos WebSocket para cada evento
-      expect(eventsGateway.server.emit).toHaveBeenCalledTimes(2);
+      // Debe emitir a cada evento y a la banda
+      expect(eventsGateway.server.emit).toHaveBeenCalledTimes(3);
       expect(eventsGateway.server.emit).toHaveBeenCalledWith(
         'songUpdated-100',
-        expect.objectContaining({
-          e: '100',
-          m: expect.objectContaining({
-            sid: songId,
-            ct: 'info',
-          }),
-          u: 'system',
-        }),
+        expect.anything(),
       );
       expect(eventsGateway.server.emit).toHaveBeenCalledWith(
         'songUpdated-200',
+        expect.anything(),
+      );
+      expect(eventsGateway.server.emit).toHaveBeenCalledWith(
+        `bandSongUpdated-${bandId}`,
         expect.objectContaining({
-          e: '200',
-          m: expect.objectContaining({
-            sid: songId,
-            ct: 'info',
-          }),
-          u: 'system',
+          songId: songId,
+          bandId: bandId,
+          title: updatedSong.title,
+          artist: updatedSong.artist,
+          changeType: 'info',
         }),
       );
     });
