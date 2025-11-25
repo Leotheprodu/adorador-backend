@@ -8,6 +8,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     await this.initializeRoles();
     await this.initializeChurchRoles();
     await this.initializeSongsStructures();
+    await this.initializeSubscriptionPlans();
   }
 
   async initializeRoles() {
@@ -118,6 +119,66 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
         ],
       });
       console.log('Initial song structures created.');
+    }
+  }
+
+  async initializeSubscriptionPlans() {
+    const existingPlans = await this.subscriptionPlans.findMany();
+
+    if (existingPlans.length === 0) {
+      await this.subscriptionPlans.createMany({
+        data: [
+          {
+            name: 'Trial',
+            type: 'TRIAL',
+            price: 0,
+            currency: 'USD',
+            maxMembers: 5,
+            maxSongs: 100,
+            maxEventsPerMonth: 2,
+            maxPeoplePerEvent: 5,
+            durationDays: 15, // 15 días para nuevas bandas
+            active: true,
+          },
+          {
+            name: 'Básico',
+            type: 'BASIC',
+            price: 10,
+            currency: 'USD',
+            maxMembers: 5,
+            maxSongs: 100,
+            maxEventsPerMonth: 2,
+            maxPeoplePerEvent: 5,
+            durationDays: null, // Mensual
+            active: true,
+          },
+          {
+            name: 'Professional',
+            type: 'PROFESSIONAL',
+            price: 25,
+            currency: 'USD',
+            maxMembers: 15,
+            maxSongs: 200,
+            maxEventsPerMonth: 4,
+            maxPeoplePerEvent: 15,
+            durationDays: null, // Mensual
+            active: true,
+          },
+          {
+            name: 'Premium',
+            type: 'PREMIUM',
+            price: 50,
+            currency: 'USD',
+            maxMembers: 30,
+            maxSongs: 500,
+            maxEventsPerMonth: 10,
+            maxPeoplePerEvent: 30,
+            durationDays: null, // Mensual
+            active: true,
+          },
+        ],
+      });
+      console.log('Initial subscription plans created.');
     }
   }
 }
