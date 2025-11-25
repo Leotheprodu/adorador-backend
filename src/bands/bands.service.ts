@@ -78,7 +78,9 @@ export class BandsService {
     const band = await this.prisma.bands.create({
       data: {
         ...data,
-        createdBy: userId, // Track band creator for subscription limits
+        creator: {
+          connect: { id: userId }, // Connect to existing user as creator
+        },
         members: {
           create: {
             userId,
