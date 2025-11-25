@@ -8,7 +8,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     await this.initializeRoles();
     await this.initializeChurchRoles();
     await this.initializeSongsStructures();
-    /* await this.initializeSubscriptionPlans(); */
+    await this.initializeSubscriptionPlans();
   }
 
   async initializeRoles() {
@@ -122,7 +122,7 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
     }
   }
 
-  /* async initializeSubscriptionPlans() {
+  async initializeSubscriptionPlans() {
     const existingPlans = await this.subscriptionPlans.findMany();
 
     if (existingPlans.length === 0) {
@@ -180,5 +180,5 @@ export class PrismaService extends PrismaClient implements OnModuleInit {
       });
       console.log('Initial subscription plans created.');
     }
-  } */
+  }
 }
