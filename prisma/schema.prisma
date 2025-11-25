@@ -40,6 +40,12 @@ model Users {
   songCopies       SongCopies[]       @relation("UserSongCopies")
   notifications    Notifications[]    @relation("UserNotifications")
 
+  // Subscription relations
+  paymentsMade     PaymentHistory[] @relation("PaymentPaidBy")
+  paymentsApproved PaymentHistory[] @relation("PaymentApprovedBy")
+  createdBands     Bands[]          @relation("BandCreator")
+  trialHistory     TrialHistory[]   @relation("TrialHistoryUser")
+
   @@map("Users")
 }
 
@@ -79,8 +85,17 @@ model Churches {
 }
 
 model Bands {
-  id          Int               @id @default(autoincrement())
-  name        String            @unique
+  id   Int    @id @default(autoincrement())
+  name String @unique
+
+  // Anti-exploit: Soft delete
+  deletedAt DateTime? // NULL = activa, NOT NULL = archivada
+  deletedBy Int? // Usuario que archivó
+
+  // Anti-exploit: Tracking de creación
+  createdBy Int // Usuario que creó la banda (para límites y trials)
+  creator   Users @relation("BandCreator", fields: [createdBy], references: [id])
+
   events      Events[]
   songs       Songs[]
   members     MembersofBands[]
@@ -92,6 +107,12 @@ model Bands {
   posts         Posts[]      @relation("PostBand")
   receivedSongs SongCopies[] @relation("BandReceivedSongs")
 
+  // Subscription relations
+  subscription BandSubscriptions?
+  trialHistory TrialHistory[]     @relation("TrialHistoryBand")
+
+  @@index([deletedAt]) // Filtrar bandas activas/archivadas
+  @@index([createdBy, deletedAt]) // Contar bandas activas por usuario
   @@map("Bands")
 }
 
@@ -456,10 +477,164 @@ model Notifications {
 
 enum NotificationType {
   COMMENT_ON_POST // Alguien comentó en tu publicación
-  REPLY_TO_COMMENT // Alguien respondió a tu comentario
+  REPLY_TO_COMMENT // Alguien respond a tu comentario
   BLESSING_ON_POST // Alguien bendijo tu publicación
   SONG_COPIED // Alguien copió tu canción compartida
   BAND_INVITATION // Invitación a una banda
   BAND_INVITATION_ACCEPTED // Aceptaron tu invitación
   BAND_INVITATION_REJECTED // Rechazaron tu invitación
 }
+
+// ============================================================================
+// SUBSCRIPTION SYSTEM
+// ============================================================================
+
+// Plan Types
+enum PlanType {
+  TRIAL
+  BASIC
+  PROFESSIONAL
+  PREMIUM
+
+  @@map("PlanType")
+}
+
+// Subscription Status
+enum SubscriptionStatus {
+  TRIAL // En período de prueba
+  ACTIVE // Pagada y activa
+  PAYMENT_PENDING // Esperando aprobación de pago
+  GRACE_PERIOD // En período de gracia (3 días después de expiración)
+  EXPIRED // Expirada (después de período de gracia)
+  CANCELLED // Cancelada
+
+  @@map("SubscriptionStatus")
+}
+
+// Payment Methods
+enum PaymentMethod {
+  PAYPAL
+  SINPE_MOVIL
+  BANK_TRANSFER
+
+ @@map("PaymentMethod")
+}
+
+// Payment Status
+enum PaymentStatus {
+  PENDING // Esperando aprobación
+  APPROVED // Aprobado por admin
+  REJECTED // Rechazado
+
+  @@map("PaymentStatus")
+}
+
+// Subscription Plans (catálogo de planes disponibles)
+model SubscriptionPlans {
+  id   Int      @id @default(autoincrement())
+  name String   @unique // "Trial", "Básico", "Professional", "Premium"
+  type PlanType @unique
+  price       Decimal @db.Decimal(10, 2) // 0.00, 10.00, 25.00, 50.00
+  currency    String  @default("USD")
+
+  // Límites del plan
+  maxMembers        Int // Máximo de miembros en la banda
+  maxSongs          Int // Máximo de canciones en base de datos
+  maxEventsPerMonth Int // Máximo de eventos por mes
+  maxPeoplePerEvent Int // Máximo de personas simultáneas en evento
+
+  // Duración (para Trial)
+  durationDays Int? // null = mensual, 15 = trial de 15 días, 30 = bandas existentes
+
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  subscriptions BandSubscriptions[]
+
+  @@map("SubscriptionPlans")
+}
+
+// Suscripción de cada banda
+model BandSubscriptions {
+  id     Int   @id @default(autoincrement())
+  bandId Int   @unique // Una banda solo puede tener una suscripción activa
+  band   Bands @relation(fields: [bandId], references: [id], onDelete: Cascade)
+
+  planId Int
+  plan   SubscriptionPlans @relation(fields: [planId], references: [id])
+
+  status SubscriptionStatus @default(TRIAL)
+
+  // Fechas importantes
+  trialStartDate     DateTime? // Cuándo empezó el trial
+  trialEndDate       DateTime? // Cuándo termina el trial
+  currentPeriodStart DateTime // Inicio del período actual
+  currentPeriodEnd   DateTime // Fin del período actual
+  gracePeriodEnd     DateTime? // Fin del período de gracia (3 días después de expiración)
+
+  // Histórico
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relaciones
+  payments PaymentHistory[]
+
+  @@index([bandId, status])
+  @@index([currentPeriodEnd])
+  @@map("BandSubscriptions")
+}
+
+// Historial de pagos
+model PaymentHistory {
+  id             Int               @id @default(autoincrement())
+  subscriptionId Int
+  subscription   BandSubscriptions @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  amount   Decimal       @db.Decimal(10, 2)
+  currency String        @default("USD")
+  method   PaymentMethod
+  status   PaymentStatus @default(PENDING)
+
+  // Información del pago
+  paidByUserId Int? // Usuario que reportó el pago
+  paidByUser   Users? @relation("PaymentPaidBy", fields: [paidByUserId], references: [id])
+
+  // Comprobante/referencia
+  referenceNumber String? // Número de referencia del pago
+  proofImageUrl   String? // URL de la imagen del comprobante
+  notes           String? @db.Text // Notas del usuario al pagar
+
+  // Aprobación manual (solo super admin)
+  approvedByUserId Int? // Super admin que aprobó
+  approvedByUser   Users? @relation("PaymentApprovedBy", fields: [approvedByUserId], references: [id])
+  approvedAt       DateTime?
+  rejectionReason  String? @db.Text
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([subscriptionId])
+  @@index([status])
+  @@map("PaymentHistory")
+}
+
+// Historial de trials usados (previene abuso)
+model TrialHistory {
+  id        Int    @id @default(autoincrement())
+  userId    Int // Usuario que creó la banda
+  user      Users  @relation("TrialHistoryUser", fields: [userId], references: [id])
+  userPhone String // Teléfono del usuario (KEY para prevenir múltiples cuentas)
+  bandId    Int // Banda que obtuvo el trial
+  band      Bands  @relation("TrialHistoryBand", fields: [bandId], references: [id])
+
+  trialStartDate DateTime // Cuándo empezó el trial
+  trialEndDate   DateTime // Cuándo terminó
+
+  createdAt DateTime @default(now())
+
+  @@index([userPhone]) // Búsqueda rápida por teléfono
+  @@index([userId]) // Búsqueda por usuario
+  @@map("TrialHistory")
+}
+
