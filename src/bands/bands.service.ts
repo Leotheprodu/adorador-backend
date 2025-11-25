@@ -18,7 +18,7 @@ export class BandsService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => EventsGateway))
     private readonly eventsGateway: EventsGateway,
-  ) {}
+  ) { }
 
   async getBands() {
     const currentDate = new Date();
@@ -78,6 +78,7 @@ export class BandsService {
     const band = await this.prisma.bands.create({
       data: {
         ...data,
+        createdBy: userId, // Track band creator for subscription limits
         members: {
           create: {
             userId,
