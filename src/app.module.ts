@@ -15,6 +15,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { BandsModule } from './bands/bands.module';
 import { FeedModule } from './feed/feed.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SubscriptionsModule } from './subscriptions/subscriptions.module';
 import { JwtUserMiddleware } from './auth/middlewares/jwt-user.middleware';
 
 @Module({
@@ -35,6 +36,7 @@ import { JwtUserMiddleware } from './auth/middlewares/jwt-user.middleware';
     BandsModule,
     FeedModule,
     NotificationsModule,
+    SubscriptionsModule,
   ],
   controllers: [],
   providers: [],
