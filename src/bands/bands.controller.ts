@@ -32,6 +32,7 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { CheckSubscriptionLimit } from '../subscriptions/guards/subscription.guard';
 import {
   ApiGetBands,
   ApiGetUserBands,
@@ -50,7 +51,7 @@ export class BandsController {
     private authJwtService: AuthJwtService,
     private prisma: PrismaService,
     private eventsGateway: EventsGateway,
-  ) {}
+  ) { }
 
   @ApiGetBands()
   @Get()
@@ -292,6 +293,7 @@ export class BandsController {
     key: 'bandId',
     isAdmin: true,
   })
+  @CheckSubscriptionLimit('maxMembers')
   async createInvitation(
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,

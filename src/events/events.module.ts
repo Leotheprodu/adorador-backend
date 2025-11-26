@@ -6,11 +6,12 @@ import { MembershipsService } from '../memberships/memberships.service';
 import { EventsGateway } from './events.gateway';
 import { EventsGatewayController } from './events-ws.controller';
 import { AuthModule } from '../auth/auth.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [forwardRef(() => EventsModule), AuthModule],
+  imports: [forwardRef(() => EventsModule), AuthModule, SubscriptionsModule],
   controllers: [EventsController, EventsGatewayController],
   providers: [EventsService, EventsGateway, PrismaService, MembershipsService],
   exports: [EventsGateway, EventsService],
 })
-export class EventsModule {}
+export class EventsModule { }

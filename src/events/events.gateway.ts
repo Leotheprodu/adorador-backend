@@ -9,6 +9,7 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { EventsService } from './events.service';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 import { frontEndUrl } from '../../config/constants';
 import { forwardRef, Inject, Logger } from '@nestjs/common';
 import { AuthJwtService, JwtPayload } from '../auth/services/jwt.service';
@@ -78,6 +79,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @Inject(forwardRef(() => EventsService))
     private readonly eventsService: EventsService,
     private readonly jwtService: AuthJwtService,
+    private readonly subscriptionsService: SubscriptionsService,
   ) {
     // Limpiar caches periódicamente
     setInterval(() => this.cleanUpExpiredMessages(), 60000); // Cada minuto
@@ -542,13 +544,91 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   // ========= MÉTODOS PARA TRACKING DE USUARIOS CONECTADOS =========
 
   @SubscribeMessage('joinEvent')
-  handleJoinEvent(
-    @MessageBody() data: { eventId: number },
+  async handleJoinEvent(
+    @MessageBody() data: { eventId: number; bandId: number },
     @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     try {
-      const { eventId } = data;
+      const { eventId, bandId } = data;
       const socketId = client.id;
+
+      // Verificar límite de conexiones según el plan de suscripción
+      const currentConnections = this.eventConnections.get(eventId)?.size || 0;
+
+      // Obtener suscripción de la banda
+      const subscription = await this.subscriptionsService.getSubscriptionByBandId(bandId);
+
+      if (subscription && subscription.plan) {
+        const maxConnections = subscription.plan.maxPeoplePerEvent;
+
+        // Si ya se alcanzó el límite
+        if (currentConnections >= maxConnections) {
+          // Si el usuario está autenticado, tiene prioridad sobre invitados
+          if (client.isAuthenticated) {
+            // Buscar un invitado para desconectar
+            const guestToDisconnect = this.findGuestToDisconnect(eventId);
+
+            if (guestToDisconnect) {
+              // Desconectar al invitado
+              const guestClient = this.connectedClients.get(guestToDisconnect);
+
+              this.logger.warn(
+                `Desconectando invitado ${guestToDisconnect} del evento ${eventId} ` +
+                `para dar prioridad a usuario autenticado ${client.userName} (${client.userId})`,
+              );
+
+              // Notificar al invitado que fue desconectado
+              if (guestClient) {
+                guestClient.emit('disconnected_by_priority', {
+                  eventId,
+                  reason: 'Un miembro de la banda necesita conectarse',
+                  message: 'Has sido desconectado del evento porque un músico de la banda necesita el espacio. Los miembros de la banda tienen prioridad sobre los invitados.',
+                });
+
+                // Forzar desconexión del evento
+                this.leaveCurrentEvent(guestToDisconnect);
+              }
+
+              this.logger.log(
+                `Espacio liberado. Usuario autenticado ${client.userName} puede conectarse.`,
+              );
+            } else {
+              // No hay invitados para desconectar, todos son usuarios autenticados
+              this.logger.warn(
+                `Límite alcanzado para evento ${eventId} y no hay invitados para desconectar. ` +
+                `Todos los ${currentConnections} usuarios conectados están autenticados.`,
+              );
+
+              client.emit('connection_limit_reached', {
+                eventId,
+                currentConnections,
+                maxConnections,
+                planName: subscription.plan.name,
+                allAuthenticated: true,
+                message: `Este evento ha alcanzado el límite de ${maxConnections} personas conectadas simultáneamente. Todos los espacios están ocupados por miembros autenticados.`,
+              });
+              return;
+            }
+          } else {
+            // Usuario invitado y límite alcanzado
+            this.logger.warn(
+              `Límite de conexiones alcanzado para evento ${eventId}. ` +
+              `Invitado ${socketId} no puede conectarse. ` +
+              `Actual: ${currentConnections}, Máximo: ${maxConnections}`,
+            );
+
+            client.emit('connection_limit_reached', {
+              eventId,
+              currentConnections,
+              maxConnections,
+              planName: subscription.plan.name,
+              isGuest: true,
+              message: `Este evento ha alcanzado el límite de ${maxConnections} personas conectadas simultáneamente según el plan ${subscription.plan.name}. Los miembros de la banda tienen prioridad.`,
+            });
+            return;
+          }
+        }
+      }
 
       // Remover de evento anterior si existía
       this.leaveCurrentEvent(socketId);
@@ -561,8 +641,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       this.eventConnections.get(eventId).add(socketId);
       this.clientEventMap.set(socketId, eventId);
 
+      const userType = client.isAuthenticated ? 'autenticado' : 'invitado';
       this.logger.log(
-        `Cliente ${socketId} (${client.userName || 'Invitado'}) se unió al evento ${eventId}`,
+        `Cliente ${socketId} (${client.userName || 'Invitado'}) [${userType}] se unió al evento ${eventId}. ` +
+        `Conexiones: ${this.eventConnections.get(eventId).size}/${subscription?.plan?.maxPeoplePerEvent || '∞'}`,
       );
 
       // Emitir lista actualizada de usuarios conectados al evento
@@ -768,6 +850,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       }
     }
 
+
     return {
       totalConnectedClients: this.connectedClients.size,
       activeEvents: this.eventConnections.size,
@@ -776,5 +859,25 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       cachedMessages: this.lastMessages.size,
       events: eventsMetrics,
     };
+  }
+
+  /**
+   * Encuentra un invitado (usuario no autenticado) para desconectar del evento
+   * @param eventId ID del evento
+   * @returns socketId del invitado a desconectar, o null si no hay invitados
+   */
+  private findGuestToDisconnect(eventId: number): string | null {
+    const connectedSocketIds = this.eventConnections.get(eventId);
+    if (!connectedSocketIds) return null;
+
+    // Buscar el primer invitado (no autenticado)
+    for (const socketId of connectedSocketIds) {
+      const client = this.connectedClients.get(socketId);
+      if (client && !client.isAuthenticated) {
+        return socketId;
+      }
+    }
+
+    return null; // No hay invitados
   }
 }

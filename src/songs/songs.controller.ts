@@ -29,6 +29,7 @@ import {
   CheckLoginStatus,
   CheckUserMemberOfBand,
 } from '../auth/decorators/permissions.decorators';
+import { CheckSubscriptionLimit } from '../subscriptions/guards/subscription.guard';
 import { churchRoles } from '../../config/constants';
 import { Response } from 'express';
 import { catchHandle } from '../chore/utils/catchHandle';
@@ -38,7 +39,7 @@ import { catchHandle } from '../chore/utils/catchHandle';
 @UseGuards(PermissionsGuard)
 @CheckLoginStatus('loggedIn')
 export class SongsController {
-  constructor(private readonly songsService: SongsService) {}
+  constructor(private readonly songsService: SongsService) { }
 
   @ApiCreateSong()
   @Post()
@@ -46,6 +47,7 @@ export class SongsController {
     checkBy: 'paramBandId',
     key: 'bandId',
   })
+  @CheckSubscriptionLimit('maxSongs')
   async create(
     @Res() res: Response,
     @Body() createSongDto: CreateSongDto,

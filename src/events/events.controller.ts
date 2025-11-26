@@ -36,6 +36,7 @@ import {
   CheckLoginStatus,
   CheckBandAdmin,
 } from '../auth/decorators/permissions.decorators';
+import { CheckSubscriptionLimit } from '../subscriptions/guards/subscription.guard';
 import { churchRoles } from '../../config/constants';
 import { catchHandle } from '../chore/utils/catchHandle';
 import { Response } from 'express';
@@ -55,7 +56,7 @@ export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
     private readonly eventsGateway: EventsGateway,
-  ) {}
+  ) { }
 
   @ApiCreateEvent()
   @CheckLoginStatus('loggedIn')
@@ -68,6 +69,7 @@ export class EventsController {
       churchRoles.musician.id,
     ],
   }) */
+  @CheckSubscriptionLimit('maxEventsPerMonth')
   @Post()
   async create(
     @Body() createEventDto: CreateEventDto,

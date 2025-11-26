@@ -6,11 +6,18 @@ import { SubscriptionGuard } from './guards/subscription.guard';
 
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
+import { SubscriptionsCronService } from './subscriptions.cron';
 
 @Module({
     imports: [],
     controllers: [SubscriptionsController, PaymentsController],
-    providers: [SubscriptionsService, PrismaService, SubscriptionGuard, PaymentsService],
+    providers: [
+        SubscriptionsService,
+        PrismaService,
+        SubscriptionGuard,
+        PaymentsService,
+        SubscriptionsCronService,
+    ],
     exports: [SubscriptionsService],
 })
 export class SubscriptionsModule { }
