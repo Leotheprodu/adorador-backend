@@ -532,8 +532,8 @@ enum PaymentStatus {
 // Subscription Plans (catálogo de planes disponibles)
 model SubscriptionPlans {
   id   Int      @id @default(autoincrement())
-  name String   @unique // "Trial", "Básico", "Professional", "Premium"
-  type PlanType @unique
+  name String   @unique // "Trial", "Básico Mensual", "Básico Anual", etc.
+  type PlanType // TRIAL, BASIC, PROFESSIONAL, PREMIUM (can have multiple per type for different durations)
   price       Decimal @db.Decimal(10, 2) // 0.00, 10.00, 25.00, 50.00
   currency    String  @default("USD")
 
@@ -543,8 +543,8 @@ model SubscriptionPlans {
   maxEventsPerMonth Int // Máximo de eventos por mes
   maxPeoplePerEvent Int // Máximo de personas simultáneas en evento
 
-  // Duración (para Trial)
-  durationDays Int? // null = mensual, 15 = trial de 15 días, 30 = bandas existentes
+  // Duración
+  durationDays Int? // null o 30 = mensual, 365 = anual, 15 = trial de 15 días
 
   active    Boolean  @default(true)
   createdAt DateTime @default(now())

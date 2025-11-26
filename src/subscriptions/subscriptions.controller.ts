@@ -34,6 +34,7 @@ export class SubscriptionsController {
 
   @ApiGetPlans()
   @Get('plans')
+  @CheckLoginStatus('public') // Public endpoint - anyone can view plans
   async getPlans(@Res() res: Response) {
     try {
       const plans = await this.prisma.subscriptionPlans.findMany({
@@ -113,18 +114,13 @@ export class SubscriptionsController {
       });
 
       res.send({
-        hasSubscription: true,
-        plan: plan,
-        usage: {
-          members: currentMembers,
-          songs: currentSongs,
-          events: currentEvents,
-        },
-        limits: {
-          maxMembers: plan.maxMembers,
-          maxSongs: plan.maxSongs,
-          maxEvents: plan.maxEventsPerMonth,
-        },
+        currentMembers,
+        maxMembers: plan.maxMembers,
+        currentSongs,
+        maxSongs: plan.maxSongs,
+        currentEventsThisMonth: currentEvents,
+        maxEventsPerMonth: plan.maxEventsPerMonth,
+        maxPeoplePerEvent: plan.maxPeoplePerEvent,
       });
     } catch (e) {
       catchHandle(e);
