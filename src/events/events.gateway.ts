@@ -35,6 +35,14 @@ interface CachedEventManager {
   ttl: number; // Time to live en millisegundos
 }
 
+interface CachedSubscription {
+  bandId: number;
+  maxPeoplePerEvent: number;
+  planName: string;
+  lastUpdated: number;
+  ttl: number;
+}
+
 interface RateLimitInfo {
   count: number;
   resetTime: number;
@@ -62,6 +70,10 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private eventManagersCache: Map<number, CachedEventManager> = new Map();
   private readonly cacheDefaultTTL: number = 300000; // 5 minutos en millisegundos
 
+  // Optimización: Caché de suscripciones para evitar queries repetidas durante eventos
+  private subscriptionsCache: Map<number, CachedSubscription> = new Map();
+  private readonly subscriptionCacheTTL: number = 600000; // 10 minutos (suscripciones cambian poco)
+
   // Control de clientes conectados
   private connectedClients: Map<string, AuthenticatedSocket> = new Map();
 
@@ -84,6 +96,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // Limpiar caches periódicamente
     setInterval(() => this.cleanUpExpiredMessages(), 60000); // Cada minuto
     setInterval(() => this.cleanUpEventManagersCache(), 120000); // Cada 2 minutos
+    setInterval(() => this.cleanUpSubscriptionsCache(), 300000); // Cada 5 minutos
     setInterval(() => this.cleanUpDisconnectedClients(), 300000); // Cada 5 minutos
     setInterval(() => this.cleanUpRateLimits(), 60000); // Limpiar rate limits cada minuto
   }
@@ -445,6 +458,61 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
+  // Limpiar caché de suscripciones expirado
+  private cleanUpSubscriptionsCache() {
+    const now = Date.now();
+    for (const [bandId, cached] of this.subscriptionsCache.entries()) {
+      if (now - cached.lastUpdated > cached.ttl) {
+        this.subscriptionsCache.delete(bandId);
+        this.logger.debug(`Caché de suscripción expirado para banda ${bandId}`);
+      }
+    }
+  }
+
+  // Obtener límites de suscripción con caché (evita consultas repetidas a BD)
+  private async getSubscriptionLimits(bandId: number): Promise<CachedSubscription | null> {
+    const now = Date.now();
+    const cached = this.subscriptionsCache.get(bandId);
+
+    // Retornar caché si está vigente
+    if (cached && (now - cached.lastUpdated < cached.ttl)) {
+      return cached;
+    }
+
+    // Consultar BD solo si no hay caché o expiró
+    try {
+      const subscription = await this.subscriptionsService.getSubscriptionByBandId(bandId);
+      
+      if (!subscription || !subscription.plan) {
+        this.logger.warn(`No se encontró suscripción activa para banda ${bandId}`);
+        return null;
+      }
+
+      const subscriptionLimits: CachedSubscription = {
+        bandId,
+        maxPeoplePerEvent: subscription.plan.maxPeoplePerEvent,
+        planName: subscription.plan.name,
+        lastUpdated: now,
+        ttl: this.subscriptionCacheTTL,
+      };
+
+      // Guardar en caché
+      this.subscriptionsCache.set(bandId, subscriptionLimits);
+      this.logger.debug(`Caché de suscripción actualizado para banda ${bandId}: ${subscription.plan.name}`);
+
+      return subscriptionLimits;
+    } catch (error) {
+      this.logger.error(`Error obteniendo límites de suscripción para banda ${bandId}: ${error.message}`);
+      return null;
+    }
+  }
+
+  // Invalidar caché de suscripción cuando cambia (llamar desde el servicio de suscripciones)
+  public invalidateSubscriptionCache(bandId: number) {
+    this.subscriptionsCache.delete(bandId);
+    this.logger.log(`Caché de suscripción invalidado para banda ${bandId}`);
+  }
+
   // Invalidar caché específico (usar cuando cambie el admin del evento)
   cleanUpBandManager(eventId: number) {
     this.eventManagersCache.delete(eventId);
@@ -552,21 +620,26 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const { eventId, bandId } = data;
       const socketId = client.id;
 
+      // Verificar si el usuario YA está conectado al evento
+      const isAlreadyConnected = this.clientEventMap.get(socketId) === eventId;
+
       // Verificar límite de conexiones según el plan de suscripción
+      // Si ya está conectado, no cuenta como una nueva conexión
       const currentConnections = this.eventConnections.get(eventId)?.size || 0;
+      const effectiveConnections = isAlreadyConnected ? currentConnections - 1 : currentConnections;
 
-      // Obtener suscripción de la banda
-      const subscription = await this.subscriptionsService.getSubscriptionByBandId(bandId);
+      // Obtener límites de suscripción (con caché para eficiencia)
+      const subscriptionLimits = await this.getSubscriptionLimits(bandId);
 
-      if (subscription && subscription.plan) {
-        const maxConnections = subscription.plan.maxPeoplePerEvent;
+      if (subscriptionLimits) {
+        const maxConnections = subscriptionLimits.maxPeoplePerEvent;
 
-        // Si ya se alcanzó el límite
-        if (currentConnections >= maxConnections) {
+        // Si ya se alcanzó el límite (y no es una reconexión)
+        if (effectiveConnections >= maxConnections) {
           // Si el usuario está autenticado, tiene prioridad sobre invitados
           if (client.isAuthenticated) {
-            // Buscar un invitado para desconectar
-            const guestToDisconnect = this.findGuestToDisconnect(eventId);
+            // Buscar un invitado para desconectar (excluyendo al cliente actual)
+            const guestToDisconnect = this.findGuestToDisconnect(eventId, socketId);
 
             if (guestToDisconnect) {
               // Desconectar al invitado
@@ -596,14 +669,14 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
               // No hay invitados para desconectar, todos son usuarios autenticados
               this.logger.warn(
                 `Límite alcanzado para evento ${eventId} y no hay invitados para desconectar. ` +
-                `Todos los ${currentConnections} usuarios conectados están autenticados.`,
+                `Todos los ${effectiveConnections} usuarios conectados están autenticados.`,
               );
 
               client.emit('connection_limit_reached', {
                 eventId,
-                currentConnections,
+                currentConnections: effectiveConnections,
                 maxConnections,
-                planName: subscription.plan.name,
+                planName: subscriptionLimits.planName,
                 allAuthenticated: true,
                 message: `Este evento ha alcanzado el límite de ${maxConnections} personas conectadas simultáneamente. Todos los espacios están ocupados por miembros autenticados.`,
               });
@@ -614,16 +687,16 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
             this.logger.warn(
               `Límite de conexiones alcanzado para evento ${eventId}. ` +
               `Invitado ${socketId} no puede conectarse. ` +
-              `Actual: ${currentConnections}, Máximo: ${maxConnections}`,
+              `Actual: ${effectiveConnections}, Máximo: ${maxConnections}`,
             );
 
             client.emit('connection_limit_reached', {
               eventId,
-              currentConnections,
+              currentConnections: effectiveConnections,
               maxConnections,
-              planName: subscription.plan.name,
+              planName: subscriptionLimits.planName,
               isGuest: true,
-              message: `Este evento ha alcanzado el límite de ${maxConnections} personas conectadas simultáneamente según el plan ${subscription.plan.name}. Los miembros de la banda tienen prioridad.`,
+              message: `Este evento ha alcanzado el límite de ${maxConnections} personas conectadas simultáneamente según el plan ${subscriptionLimits.planName}. Los miembros de la banda tienen prioridad.`,
             });
             return;
           }
@@ -643,12 +716,12 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       const userType = client.isAuthenticated ? 'autenticado' : 'invitado';
       this.logger.log(
-        `Cliente ${socketId} (${client.userName || 'Invitado'}) [${userType}] se unió al evento ${eventId}. ` +
-        `Conexiones: ${this.eventConnections.get(eventId).size}/${subscription?.plan?.maxPeoplePerEvent || '∞'}`,
+        `Cliente ${socketId} (${client.userName || 'Invitado'}) [${userType}] ${isAlreadyConnected ? 're-unió' : 'se unió'} al evento ${eventId}. ` +
+        `Conexiones: ${this.eventConnections.get(eventId).size}/${subscriptionLimits?.maxPeoplePerEvent || '∞'}`,
       );
 
-      // Emitir lista actualizada de usuarios conectados al evento
-      this.emitConnectedUsers(eventId);
+      // Emitir lista actualizada de usuarios conectados al evento (incluyendo límites)
+      this.emitConnectedUsers(eventId, subscriptionLimits);
     } catch (error) {
       this.logger.error(`Error en joinEvent: ${error.message}`);
       client.emit('error', { m: 'Error joining event' });
@@ -683,7 +756,7 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  private emitConnectedUsers(eventId: number) {
+  private emitConnectedUsers(eventId: number, subscriptionLimits?: CachedSubscription | null) {
     const connectedSocketIds = this.eventConnections.get(eventId);
     if (!connectedSocketIds) return;
 
@@ -711,6 +784,11 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
       users: connectedUsers,
       guestCount,
       totalCount: connectedUsers.length + guestCount,
+      // Incluir límites si están disponibles
+      ...(subscriptionLimits && {
+        maxConnections: subscriptionLimits.maxPeoplePerEvent,
+        planName: subscriptionLimits.planName,
+      }),
     };
 
     // Emitir a todos los usuarios conectados al evento
@@ -864,14 +942,19 @@ export class EventsGateway implements OnGatewayConnection, OnGatewayDisconnect {
   /**
    * Encuentra un invitado (usuario no autenticado) para desconectar del evento
    * @param eventId ID del evento
+   * @param excludeSocketId ID del socket a excluir de la búsqueda (normalmente el que está intentando conectarse)
    * @returns socketId del invitado a desconectar, o null si no hay invitados
    */
-  private findGuestToDisconnect(eventId: number): string | null {
+  private findGuestToDisconnect(eventId: number, excludeSocketId?: string): string | null {
     const connectedSocketIds = this.eventConnections.get(eventId);
     if (!connectedSocketIds) return null;
 
-    // Buscar el primer invitado (no autenticado)
+    // Buscar el primer invitado (no autenticado) que NO sea el socket excluido
     for (const socketId of connectedSocketIds) {
+      if (excludeSocketId && socketId === excludeSocketId) {
+        continue; // Saltar el socket que se quiere excluir
+      }
+
       const client = this.connectedClients.get(socketId);
       if (client && !client.isAuthenticated) {
         return socketId;

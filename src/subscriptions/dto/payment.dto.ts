@@ -31,13 +31,7 @@ export class CreatePaymentDto {
 }
 
 export class ApprovePaymentDto {
-    @ApiProperty({
-        description: 'ID of the admin user approving the payment',
-        example: 1,
-    })
-    @IsNumber()
-    @IsNotEmpty()
-    adminUserId: number;
+    // No fields needed in body for now, admin ID is taken from token
 }
 
 export class RejectPaymentDto {

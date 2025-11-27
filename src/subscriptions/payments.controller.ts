@@ -15,12 +15,14 @@ import { Response } from 'express';
 import { ApiTags } from '@nestjs/swagger';
 import { PaymentsService } from './payments.service';
 import { PermissionsGuard } from '../auth/guards/permissions/permissions.guard';
-import { AppRole, CheckLoginStatus } from '../auth/decorators/permissions.decorators';
+import { AppRole, CheckLoginStatus, CheckUserMemberOfBand } from '../auth/decorators/permissions.decorators';
 import { catchHandle } from '../chore/utils/catchHandle';
 import { CreatePaymentDto, ApprovePaymentDto, RejectPaymentDto } from './dto/payment.dto';
 import { ApiApprovePayment, ApiCreatePayment, ApiGetBandPayments, ApiGetPendingPayments, ApiRejectPayment } from './payments.swagger';
 import { userRoles } from 'config/constants';
 
+import { GetUser } from '../auth/decorators/get-user.decorator';
+import { JwtPayload } from '../auth/services/jwt.service';
 
 @Controller('payments')
 @ApiTags('payments')
@@ -35,12 +37,14 @@ export class PaymentsController {
         @Res() res: Response,
         @Param('bandId', ParseIntPipe) bandId: number,
         @Body() createPaymentDto: CreatePaymentDto,
+        @GetUser() user: JwtPayload,
     ) {
         try {
             const payment = await this.paymentsService.createPayment(
                 bandId,
                 createPaymentDto.planId,
                 createPaymentDto.method,
+                user.sub,
                 createPaymentDto.proofUrl,
             );
 
@@ -74,6 +78,7 @@ export class PaymentsController {
     @ApiGetBandPayments()
     @Get('band/:bandId')
     @CheckLoginStatus('loggedIn')
+    @CheckUserMemberOfBand({ checkBy: 'paramBandId', key: 'bandId' })
     async getBandPayments(
         @Res() res: Response,
         @Param('bandId', ParseIntPipe) bandId: number,
@@ -81,7 +86,10 @@ export class PaymentsController {
         try {
             const payments = await this.paymentsService.getBandPayments(bandId);
 
-            res.send(payments);
+            res.send({
+                success: true,
+                data: payments,
+            });
         } catch (e) {
             catchHandle(e);
         }
@@ -94,12 +102,12 @@ export class PaymentsController {
     async approvePayment(
         @Res() res: Response,
         @Param('paymentId', ParseIntPipe) paymentId: number,
-        @Body() approvePaymentDto: ApprovePaymentDto,
+        @GetUser() user: JwtPayload,
     ) {
         try {
             const result = await this.paymentsService.approvePayment(
                 paymentId,
-                approvePaymentDto.adminUserId,
+                user.sub,
             );
 
             if (!result) {

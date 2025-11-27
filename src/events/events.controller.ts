@@ -35,8 +35,9 @@ import {
   CheckChurch,
   CheckLoginStatus,
   CheckBandAdmin,
+  CheckUserMemberOfBand,
 } from '../auth/decorators/permissions.decorators';
-import { CheckSubscriptionLimit } from '../subscriptions/guards/subscription.guard';
+import { CheckSubscriptionLimit, SubscriptionGuard } from '../subscriptions/guards/subscription.guard';
 import { churchRoles } from '../../config/constants';
 import { catchHandle } from '../chore/utils/catchHandle';
 import { Response } from 'express';
@@ -51,7 +52,7 @@ import { UpdateSongsEventDto } from './dto/update-songs-to-event.dto';
 
 @Controller('bands/:bandId/events')
 @ApiTags('Events of Bands')
-@UseGuards(PermissionsGuard)
+@UseGuards(PermissionsGuard, SubscriptionGuard)
 export class EventsController {
   constructor(
     private readonly eventsService: EventsService,
@@ -60,15 +61,11 @@ export class EventsController {
 
   @ApiCreateEvent()
   @CheckLoginStatus('loggedIn')
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-    churchRolesBypass: [
-      churchRoles.eventWebManager.id,
-      churchRoles.worshipLeader.id,
-      churchRoles.musician.id,
-    ],
-  }) */
+   @CheckUserMemberOfBand({
+      checkBy: 'paramBandId',
+      key: 'bandId',
+      isAdmin: true,
+    })
   @CheckSubscriptionLimit('maxEventsPerMonth')
   @Post()
   async create(
@@ -93,10 +90,6 @@ export class EventsController {
   @ApiGetAllEvents()
   @Get()
   @CheckLoginStatus('loggedIn')
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-  }) */
   async findAll(
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -133,15 +126,11 @@ export class EventsController {
   }
   @ApiUpdateEvent()
   @CheckLoginStatus('loggedIn')
-  @CheckBandAdmin({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-  })
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
+  @CheckUserMemberOfBand({
+      checkBy: 'paramBandId',
+      key: 'bandId',
+      isAdmin: true,
+    })
   @Patch(':id')
   async update(
     @Param('id', ParseIntPipe) id: number,
@@ -180,15 +169,11 @@ export class EventsController {
   }
   @ApiDeleteEvent()
   @CheckLoginStatus('loggedIn')
-  @CheckBandAdmin({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
+    isAdmin: true,
   })
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
   @Delete(':id')
   async remove(
     @Param('id', ParseIntPipe) id: number,
@@ -209,15 +194,11 @@ export class EventsController {
   @ApiAddSongsToEvent()
   @Post(':id/songs')
   @CheckLoginStatus('loggedIn')
-  @CheckBandAdmin({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
+    isAdmin: true,
   })
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
   async addSongsToEvent(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
@@ -256,15 +237,11 @@ export class EventsController {
   }
   @Delete(':id/songs')
   @CheckLoginStatus('loggedIn')
-  @CheckBandAdmin({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
+    isAdmin: true,
   })
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
   async deleteSongsToEvent(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
@@ -294,15 +271,11 @@ export class EventsController {
 
   @Patch(':id/songs')
   @CheckLoginStatus('loggedIn')
-  @CheckBandAdmin({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
+    isAdmin: true,
   })
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
   async updateEventSongs(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
@@ -340,11 +313,6 @@ export class EventsController {
 
   @Get(':id/songs')
   @CheckLoginStatus('public')
-  // Endpoint público - permite ver las canciones de un evento
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-  }) */
   async getEventSongs(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,
@@ -362,16 +330,11 @@ export class EventsController {
   }
 
   @Get(':id/change-event-manager')
-  @CheckLoginStatus('loggedIn')
-  /* @CheckChurch({
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-    churchRolesBypass: [
-      churchRoles.worshipLeader.id,
-      churchRoles.musician.id,
-      churchRoles.eventWebManager.id,
-    ],
-  }) */
+  })
+  @CheckLoginStatus('loggedIn')
   async changeEventManager(
     @Param('id', ParseIntPipe) id: number,
     @Res() res: Response,

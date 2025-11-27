@@ -4,13 +4,14 @@ import { SubscriptionsController } from './subscriptions.controller';
 import { PrismaService } from '../prisma.service';
 import { SubscriptionGuard } from './guards/subscription.guard';
 import { MembershipsService } from '../memberships/memberships.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 import { PaymentsService } from './payments.service';
 import { PaymentsController } from './payments.controller';
 import { SubscriptionsCronService } from './subscriptions.cron';
 
 @Module({
-    imports: [],
+    imports: [NotificationsModule],
     controllers: [SubscriptionsController, PaymentsController],
     providers: [
         SubscriptionsService,
@@ -20,6 +21,6 @@ import { SubscriptionsCronService } from './subscriptions.cron';
         SubscriptionsCronService,
         MembershipsService,
     ],
-    exports: [SubscriptionsService],
+    exports: [SubscriptionsService, SubscriptionGuard],
 })
 export class SubscriptionsModule { }

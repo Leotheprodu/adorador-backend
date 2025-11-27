@@ -29,27 +29,40 @@ export class SubscriptionGuard implements CanActivate {
             return true;
         }
 
+        console.log('🔒 [SubscriptionGuard] Verificando límite para recurso:', resource);
+
         const request = context.switchToHttp().getRequest();
         const bandId = request.params.bandId || request.body.bandId;
 
         if (!bandId) {
-            // Si no hay bandId, no podemos verificar (asumimos que la ruta no requiere verificación de banda específica o está mal configurada)
-            // Ojo: Dependiendo de la seguridad, podríamos bloquear o permitir.
-            // Para ser seguros, si la ruta tiene el decorador pero no bandId, bloqueamos.
+            console.error('❌ [SubscriptionGuard] No bandId encontrado');
             throw new ForbiddenException(
                 'Subscription verification failed: No bandId provided in params or body',
             );
         }
+
+        console.log('🔍 [SubscriptionGuard] Verificando bandId:', bandId, 'para recurso:', resource);
 
         const canProceed = await this.subscriptionsService.checkPlanLimits(
             Number(bandId),
             resource,
         );
 
+        console.log('📊 [SubscriptionGuard] Resultado de verificación:', canProceed ? '✅ PERMITIDO' : '❌ BLOQUEADO');
+
         if (!canProceed) {
-            throw new ForbiddenException(
-                `Plan limit reached for resource: ${resource}. Please upgrade your plan.`,
-            );
+            // Mensajes personalizados según el recurso
+            const messages = {
+                maxMembers: 'Has alcanzado el límite de miembros de tu plan. Actualiza tu suscripción para agregar más.',
+                maxSongs: 'Has alcanzado el límite de canciones de tu plan. Actualiza tu suscripción para agregar más.',
+                maxEventsPerMonth: 'Has alcanzado el límite de eventos del mes según tu plan. Actualiza tu suscripción para crear más eventos.',
+            };
+
+            throw new ForbiddenException({
+                message: messages[resource],
+                resource,
+                statusCode: 403,
+            });
         }
 
         return true;

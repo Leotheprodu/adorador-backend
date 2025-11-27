@@ -1,0 +1,4 @@
+{
+  "prisma.prismaPath": "node_modules/prisma",
+  "prisma.fileWatcher": true
+}

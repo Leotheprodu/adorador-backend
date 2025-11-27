@@ -4,9 +4,10 @@ import { SongsController } from './songs.controller';
 import { MembershipsService } from '../memberships/memberships.service';
 import { PrismaService } from '../prisma.service';
 import { EventsModule } from '../events/events.module';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module';
 
 @Module({
-  imports: [forwardRef(() => EventsModule)],
+  imports: [forwardRef(() => EventsModule), SubscriptionsModule],
   controllers: [SongsController],
   providers: [SongsService, MembershipsService, PrismaService],
 })

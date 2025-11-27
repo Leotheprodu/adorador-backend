@@ -1,16 +1,18 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
-import { PaymentMethod, PaymentStatus, SubscriptionStatus } from '@prisma/client';
+import { PaymentMethod, PaymentStatus, SubscriptionStatus, NotificationType } from '@prisma/client';
 import { SubscriptionsService } from './subscriptions.service';
+import { NotificationsService } from '../notifications/notifications.service';
 
 @Injectable()
 export class PaymentsService {
     constructor(
         private readonly prisma: PrismaService,
         private readonly subscriptionsService: SubscriptionsService,
+        private readonly notificationsService: NotificationsService,
     ) { }
 
-    async createPayment(bandId: number, planId: number, method: PaymentMethod, proofUrl?: string) {
+    async createPayment(bandId: number, planId: number, method: PaymentMethod, userId: number, proofUrl?: string) {
         // Verificar que el plan existe
         const plan = await this.prisma.subscriptionPlans.findUnique({
             where: { id: planId },
@@ -45,11 +47,14 @@ export class PaymentsService {
         const payment = await this.prisma.paymentHistory.create({
             data: {
                 subscriptionId: subscription.id,
+                planId: planId, // Guardar el plan por el que se pagó
+                bandId: bandId,
                 amount: plan.price,
                 currency: plan.currency,
                 method: method,
                 status: PaymentStatus.PENDING,
                 proofImageUrl: proofUrl,
+                paidByUserId: userId,
                 // Notes could be added here if DTO supported it
             },
         });
@@ -73,27 +78,15 @@ export class PaymentsService {
             throw new BadRequestException('Payment is not pending');
         }
 
-        // Obtener el plan asociado al pago (necesitamos saber qué plan pagaron)
-        // El modelo PaymentHistory NO tiene planId directo.
-        // Esto es un problema de diseño en el schema actual si queremos permitir cambiar de plan con un pago.
-        // Asumiremos que el pago es para el plan que tiene la suscripción O necesitamos guardar el planId en el pago.
-        // REVISIÓN: El schema PaymentHistory NO tiene planId.
-        // SOLUCIÓN TEMPORAL: Usar el planId de la suscripción actual, O asumir que el usuario actualizó su suscripción a "PAYMENT_PENDING" con el nuevo plan antes de pagar.
-        // Vamos a asumir que el frontend actualiza la suscripción al nuevo plan (status PAYMENT_PENDING) antes de crear el pago, O pasamos el planId en metadata (pero no hay metadata).
-
-        // Vamos a buscar el plan basado en el monto del pago para intentar deducirlo, o confiar en la suscripción.
-        // Lo más seguro es actualizar la suscripción con el plan correcto AL MOMENTO DE APROBAR.
-        // Pero, ¿cuál es el plan correcto?
-        // El schema tiene `amount`. Podemos buscar el plan por precio.
-        const plan = await this.prisma.subscriptionPlans.findFirst({
-            where: {
-                price: payment.amount,
-                currency: payment.currency
-            }
+        // Obtener el plan del pago
+        // Si el payment tiene planId, usarlo; si no, usar el de la suscripción (registros antiguos)
+        const planId = payment.planId || payment.subscription.planId;
+        const plan = await this.prisma.subscriptionPlans.findUnique({
+            where: { id: planId }
         });
 
         if (!plan) {
-            throw new BadRequestException('Could not determine plan from payment amount');
+            throw new BadRequestException('Plan not found for this payment');
         }
 
         // Actualizar estado del pago
@@ -127,6 +120,17 @@ export class PaymentsService {
             },
         });
 
+        // Notificar al usuario
+        if (payment.paidByUserId) {
+            await this.notificationsService.createNotification(
+                payment.paidByUserId,
+                NotificationType.PAYMENT_APPROVED,
+                'Pago Aprobado',
+                `Tu pago de ${payment.amount} ${payment.currency} ha sido aprobado. Tu suscripción está activa.`,
+                { paymentId: payment.id, planName: plan.name }
+            );
+        }
+
         return { message: 'Payment approved and subscription updated' };
     }
 
@@ -152,6 +156,17 @@ export class PaymentsService {
             },
         });
 
+        // Notificar al usuario
+        if (payment.paidByUserId) {
+            await this.notificationsService.createNotification(
+                payment.paidByUserId,
+                NotificationType.PAYMENT_REJECTED,
+                'Pago Rechazado',
+                `Tu pago ha sido rechazado. Razón: ${reason}`,
+                { paymentId: payment.id }
+            );
+        }
+
         return { message: 'Payment rejected' };
     }
 
@@ -161,10 +176,10 @@ export class PaymentsService {
             include: {
                 subscription: {
                     include: {
-                        band: { select: { name: true } },
-                        plan: { select: { name: true } }
+                        band: { select: { name: true } }
                     }
                 },
+                plan: { select: { id: true, name: true, price: true } },
                 paidByUser: { select: { name: true, email: true } }
             },
             orderBy: { createdAt: 'desc' },
@@ -174,15 +189,25 @@ export class PaymentsService {
     async getBandPayments(bandId: number) {
         return await this.prisma.paymentHistory.findMany({
             where: {
-                subscription: {
-                    bandId: bandId
-                }
+                bandId: bandId
             },
             include: {
+                band: {
+                    select: { id: true, name: true }
+                },
+                plan: {
+                    select: { id: true, name: true, price: true }
+                },
+                // Incluir subscription.plan como fallback para registros antiguos
                 subscription: {
                     select: {
-                        plan: { select: { name: true } }
+                        plan: {
+                            select: { id: true, name: true, price: true }
+                        }
                     }
+                },
+                paidByUser: {
+                    select: { id: true, name: true, phone: true }
                 }
             },
             orderBy: { createdAt: 'desc' },

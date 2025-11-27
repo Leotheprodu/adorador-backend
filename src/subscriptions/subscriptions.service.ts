@@ -13,7 +13,7 @@ export class SubscriptionsService {
      */
     async createTrialSubscription(bandId: number, isExistingBand = false) {
         // 1. Obtener el plan Trial
-        const trialPlan = await this.prisma.subscriptionPlans.findUnique({
+        const trialPlan = await this.prisma.subscriptionPlans.findFirst({
             where: { type: PlanType.TRIAL },
         });
 
@@ -90,6 +90,7 @@ export class SubscriptionsService {
 
         if (resource === 'maxSongs') {
             const count = await this.prisma.songs.count({ where: { bandId } });
+            console.log('📊 [checkPlanLimits] maxSongs - Count:', count, 'Limit:', plan.maxSongs, 'Can proceed?', count < plan.maxSongs);
             return count < plan.maxSongs;
         }
 

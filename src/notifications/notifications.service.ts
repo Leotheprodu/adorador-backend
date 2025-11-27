@@ -1,4 +1,4 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { NotificationType } from '@prisma/client';
 import {
@@ -6,12 +6,17 @@ import {
   NotificationListResponse,
 } from './interfaces/notification.interface';
 import { NotificationPaginationDto } from './dto/pagination.dto';
+import { NotificationsGateway } from './notifications.gateway';
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    @Inject(forwardRef(() => NotificationsGateway))
+    private notificationsGateway: NotificationsGateway,
+  ) {}
 
   /**
    * Crear una nueva notificación
@@ -36,6 +41,9 @@ export class NotificationsService {
     this.logger.log(
       `Notificación creada para usuario ${userId}: ${type} - ${title}`,
     );
+
+    // Emitir notificación en tiempo real
+    this.notificationsGateway.emitNotification(userId, notification);
 
     return notification;
   }

@@ -32,7 +32,7 @@ import { CreateInvitationDto } from './dto/create-invitation.dto';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
-import { CheckSubscriptionLimit } from '../subscriptions/guards/subscription.guard';
+import { CheckSubscriptionLimit, SubscriptionGuard } from '../subscriptions/guards/subscription.guard';
 import {
   ApiGetBands,
   ApiGetUserBands,
@@ -44,7 +44,7 @@ import {
 
 @Controller('bands')
 @ApiTags('bands')
-@UseGuards(PermissionsGuard)
+@UseGuards(PermissionsGuard, SubscriptionGuard)
 export class BandsController {
   constructor(
     private bandsService: BandsService,

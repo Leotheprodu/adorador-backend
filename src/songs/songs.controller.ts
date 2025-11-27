@@ -29,14 +29,14 @@ import {
   CheckLoginStatus,
   CheckUserMemberOfBand,
 } from '../auth/decorators/permissions.decorators';
-import { CheckSubscriptionLimit } from '../subscriptions/guards/subscription.guard';
+import { CheckSubscriptionLimit, SubscriptionGuard } from '../subscriptions/guards/subscription.guard';
 import { churchRoles } from '../../config/constants';
 import { Response } from 'express';
 import { catchHandle } from '../chore/utils/catchHandle';
 
 @Controller('bands/:bandId/songs')
 @ApiTags('Songs')
-@UseGuards(PermissionsGuard)
+@UseGuards(PermissionsGuard, SubscriptionGuard)
 @CheckLoginStatus('loggedIn')
 export class SongsController {
   constructor(private readonly songsService: SongsService) { }
@@ -46,6 +46,7 @@ export class SongsController {
   @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
+    isAdmin: true,
   })
   @CheckSubscriptionLimit('maxSongs')
   async create(
@@ -69,6 +70,7 @@ export class SongsController {
 
   @ApiGetSongsByBand()
   @Get()
+  @CheckLoginStatus('public')
   async findAll(
     @Res() res: Response,
     @Param('bandId', ParseIntPipe) bandId: number,
@@ -85,11 +87,8 @@ export class SongsController {
   }
 
   @ApiGetSong()
+  @CheckLoginStatus('public')
   @Get(':id')
-  /* @CheckChurch({
-    checkBy: 'paramBandId',
-    key: 'bandId',
-  }) */
   async findOne(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
@@ -108,11 +107,11 @@ export class SongsController {
 
   @ApiUpdateSong()
   @Patch(':id')
-  /* @CheckChurch({
+  @CheckLoginStatus('loggedIn')
+ @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
+  })
   async update(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,
@@ -135,11 +134,12 @@ export class SongsController {
 
   @ApiDeleteSong()
   @Delete(':id')
-  /* @CheckChurch({
+  @CheckLoginStatus('loggedIn')
+  @CheckUserMemberOfBand({
     checkBy: 'paramBandId',
     key: 'bandId',
-    churchRolesBypass: [churchRoles.worshipLeader.id, churchRoles.musician.id],
-  }) */
+    isAdmin: true,
+  })
   async remove(
     @Res() res: Response,
     @Param('id', ParseIntPipe) id: number,

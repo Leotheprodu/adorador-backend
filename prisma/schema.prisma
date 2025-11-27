@@ -109,6 +109,7 @@ model Bands {
 
   // Subscription relations
   subscription BandSubscriptions?
+  payments     PaymentHistory[]
   trialHistory TrialHistory[]     @relation("TrialHistoryBand")
 
   @@index([deletedAt]) // Filtrar bandas activas/archivadas
@@ -483,6 +484,8 @@ enum NotificationType {
   BAND_INVITATION // Invitación a una banda
   BAND_INVITATION_ACCEPTED // Aceptaron tu invitación
   BAND_INVITATION_REJECTED // Rechazaron tu invitación
+  PAYMENT_APPROVED // Pago de suscripción aprobado
+  PAYMENT_REJECTED // Pago de suscripción rechazado
 }
 
 // ============================================================================
@@ -551,6 +554,7 @@ model SubscriptionPlans {
   updatedAt DateTime @updatedAt
 
   subscriptions BandSubscriptions[]
+  payments      PaymentHistory[]    @relation("PaymentPlan")
 
   @@map("SubscriptionPlans")
 }
@@ -590,6 +594,14 @@ model PaymentHistory {
   id             Int               @id @default(autoincrement())
   subscriptionId Int
   subscription   BandSubscriptions @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  // Plan por el que se pagó (guardado para historial)
+  // Nullable para registros históricos que no tienen esta información
+  planId Int?
+  plan   SubscriptionPlans? @relation("PaymentPlan", fields: [planId], references: [id])
+
+  bandId Int?
+  band   Bands? @relation(fields: [bandId], references: [id], onDelete: Cascade)
 
   amount   Decimal       @db.Decimal(10, 2)
   currency String        @default("USD")
