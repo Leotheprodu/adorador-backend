@@ -4,6 +4,12 @@ import { ValidationPipe } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { corsLink } from '../config/constants';
 import { NestExpressApplication } from '@nestjs/platform-express';
+import { webcrypto } from 'crypto';
+
+// Polyfill para crypto en Node.js v18 (requerido por @nestjs/schedule)
+if (typeof globalThis.crypto === 'undefined') {
+  (globalThis as any).crypto = webcrypto;
+}
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
