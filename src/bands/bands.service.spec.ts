@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BandsService } from './bands.service';
 import { PrismaService } from '../prisma.service';
 import { EventsGateway } from '../events/events.gateway';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 describe('BandsService', () => {
   let service: BandsService;
@@ -49,6 +50,13 @@ describe('BandsService', () => {
       },
     };
 
+    const mockSubscriptionsService = {
+      createTrialSubscription: jest.fn(),
+      getSubscriptionByBandId: jest.fn(),
+      checkPlanLimits: jest.fn(),
+      cancelSubscription: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BandsService,
@@ -59,6 +67,10 @@ describe('BandsService', () => {
         {
           provide: EventsGateway,
           useValue: mockEventsGateway,
+        },
+        {
+          provide: SubscriptionsService,
+          useValue: mockSubscriptionsService,
         },
       ],
     }).compile();
@@ -177,6 +189,9 @@ describe('BandsService', () => {
       expect(prismaService.bands.create).toHaveBeenCalledWith({
         data: {
           ...createBandDto,
+          creator: {
+            connect: { id: userId },
+          },
           members: {
             create: {
               userId,

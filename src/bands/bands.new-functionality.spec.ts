@@ -5,6 +5,7 @@ describe('BandsService - New Functionality', () => {
   let service: BandsService;
   let mockPrisma: any;
   let mockEventsGateway: any;
+  let mockSubscriptionsService: any;
 
   beforeEach(() => {
     mockPrisma = {
@@ -19,7 +20,14 @@ describe('BandsService - New Functionality', () => {
       },
     };
 
-    service = new BandsService(mockPrisma, mockEventsGateway);
+    mockSubscriptionsService = {
+      createTrialSubscription: jest.fn(),
+      getSubscriptionByBandId: jest.fn(),
+      checkPlanLimits: jest.fn(),
+      cancelSubscription: jest.fn(),
+    };
+
+    service = new BandsService(mockPrisma, mockEventsGateway, mockSubscriptionsService);
   });
 
   describe('createBand with automatic membership', () => {
@@ -51,6 +59,9 @@ describe('BandsService - New Functionality', () => {
       expect(mockPrisma.bands.create).toHaveBeenCalledWith({
         data: {
           ...createBandDto,
+          creator: {
+            connect: { id: userId },
+          },
           members: {
             create: {
               userId,
@@ -95,6 +106,11 @@ describe('BandsService - New Functionality', () => {
         expect.objectContaining({
           data: expect.objectContaining({
             name: 'Another Band',
+            creator: expect.objectContaining({
+              connect: expect.objectContaining({
+                id: 2,
+              }),
+            }),
             members: expect.objectContaining({
               create: expect.objectContaining({
                 userId: 2,

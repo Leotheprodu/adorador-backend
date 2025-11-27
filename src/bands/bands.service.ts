@@ -11,6 +11,7 @@ import { CreateBandDto } from './dto/create-band.dto';
 import { passwordCompare } from '../users/utils/handlePassword';
 import { UpdateMemberDto } from './dto/update-member.dto';
 import { EventsGateway } from '../events/events.gateway';
+import { SubscriptionsService } from '../subscriptions/subscriptions.service';
 
 @Injectable()
 export class BandsService {
@@ -18,6 +19,7 @@ export class BandsService {
     private prisma: PrismaService,
     @Inject(forwardRef(() => EventsGateway))
     private readonly eventsGateway: EventsGateway,
+    private readonly subscriptionsService: SubscriptionsService,
   ) { }
 
   async getBands() {
@@ -107,9 +109,12 @@ export class BandsService {
     });
 
     if (band) {
+      // Crear suscripción trial automáticamente (15 días para nuevas bandas)
+      await this.subscriptionsService.createTrialSubscription(band.id, false);
       return band;
     }
   }
+
   async getBand(id: number) {
     const currentDate = new Date();
     currentDate.setHours(0, 0, 0, 0);
@@ -152,6 +157,7 @@ export class BandsService {
       },
     });
   }
+
   async updateBand(id: number, data: CreateBandDto) {
     return await this.prisma.bands.update({
       where: { id },
