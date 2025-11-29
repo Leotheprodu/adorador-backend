@@ -99,7 +99,7 @@ export class UsersController {
           status: result.status,
         },
         verificationToken: result.verificationToken,
-        whatsappMessage: `Para verificar tu cuenta en Adorador, envía este mensaje al bot de WhatsApp ${process.env.WHATSAPP_BOT_NUMBER || '+50663017707'}: "registro-adorador:${result.verificationToken}"`,
+        whatsappMessage: `Para verificar tu cuenta en Zamr, envía este mensaje al bot de WhatsApp ${process.env.WHATSAPP_BOT_NUMBER || '+50663017707'}: "registro-adorador:${result.verificationToken}"`,
         message: result.message,
       });
     } catch (e) {
@@ -215,7 +215,7 @@ export class UsersController {
       res.send({
         success: true,
         verificationToken,
-        whatsappMessage: `Para verificar tu cuenta en Adorador, envía este mensaje al bot de WhatsApp ${process.env.WHATSAPP_BOT_NUMBER || '+50663017707'}: "registro-adorador:${verificationToken}"`,
+        whatsappMessage: `Para verificar tu cuenta en Zamr, envía este mensaje al bot de WhatsApp ${process.env.WHATSAPP_BOT_NUMBER || '+50663017707'}: "registro-adorador:${verificationToken}"`,
         message: 'Token de verificación de WhatsApp generado exitosamente.',
       });
     } catch (e) {
